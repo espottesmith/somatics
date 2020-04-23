@@ -53,13 +53,4 @@ XTBSurface::XTBSurface(Molecule molecule_in, XTBAdapter adapter_in, double accur
 	accuracy = accuracy_in;
 }
 
-XTBSurface::XTBSurface(int num_atoms_in, int charge_in, std::string *species_in, double *coords_in,
-                       std::string base_command_in, std::string input_name_in, std::string output_name_in,
-                       int num_threads_in, double accuracy_in, double* lower_bounds_in,
-                       double* upper_bounds_in) : PotentialEnergySurface(num_atoms_in * 3, lower_bounds_in, upper_bounds_in) {
-	molecule = Molecule(num_atoms_in, charge_in, species_in, coords_in);
-	adapter = XTBAdapter(base_command_in, input_name_in, output_name_in, num_threads_in);
-	accuracy = accuracy_in;
-}
-
 XTBSurface::XTBSurface() { }
