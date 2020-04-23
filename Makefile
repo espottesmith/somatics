@@ -1,8 +1,8 @@
 .PHONY: execute clean
 
-ON_CORI           = TRUE
+ON_CORI           = FALSE
 USE_MPI           = FALSE
-USE_OMP           = FALSE
+USE_OMP           = TRUE
 USE_MIN_FINDER    = TRUE
 USE_TS_FINDER     = TRUE
 USE_QHULL         = FALSE

@@ -68,6 +68,9 @@ int main(int argc, char** argv) {
 	num_agents_ts = find_int_arg(argc, argv, "-nts", 8);
 
 	int num_threads = find_int_arg(argc, argv, "-nthreads", 1);
+#ifdef USE_OMP
+	omp_set_num_threads(num_threads);
+#endif //USE_OMP
 
 	double min_find_tol = 1.0 * pow(10, -1.0 * find_int_arg(argc, argv, "-mtol", 8));
 	double unique_min_tol = 1.0 * pow(10, -1.0 * find_int_arg(argc, argv, "-utol", 6));
@@ -174,7 +177,7 @@ int main(int argc, char** argv) {
 		min_agent_bases[a].vel = new double[num_dim];
 		min_agent_bases[a].pos_best = new double[num_dim];
 	}
-	
+
 	region_t region;
 	region.lo = new double[num_dim];
 	region.hi = new double[num_dim];
@@ -197,16 +200,13 @@ int main(int argc, char** argv) {
 	MinimaNicheSwarm swarm(pes, min_agent_bases, num_agents_min,
 			       inertia, cognit, social,
 			       max_subswarm_size, 3, var_threshold);
-	// MinimaSwarm swarm(pes, min_agent_bases, num_agents_min, inertia, cognit, social);
 	std::cout << "Defined swarm" << std::endl;
-	
+
 	MinimaNicheOptimizer optimizer (swarm, min_find_tol, unique_min_tol, max_iter, savefreq);
-	// MinimaOptimizer optimizer (swarm, min_find_tol, max_iter, savefreq);
 	std::cout << "Defined optimizer" << std::endl;
 
 	auto t_start_min_find = std::chrono::steady_clock::now();
 
-	// optimizer.optimize(fsave);
 	std::vector<double*> minima = optimizer.optimize(fsave);
 	auto t_end_min_find = std::chrono::steady_clock::now();
 	std::chrono::duration<double> diff = t_end_min_find - t_start_min_find;
@@ -226,6 +226,8 @@ int main(int argc, char** argv) {
 	int* outpairs = delaunay(minima);
 	int num_min = minima.size();
 
+	omp_set_dynamic(0);
+
 	for (int i = 0; i < num_min; i++) {
   	    for (int j = 0; j < i; j++) {
   	    	if (outpairs[i * num_min + j] == 1) {
@@ -241,9 +243,7 @@ int main(int argc, char** argv) {
 	}
 
 #endif
-
 #ifdef USE_MPI
 	MPI_Finalize();
 #endif
-
 }

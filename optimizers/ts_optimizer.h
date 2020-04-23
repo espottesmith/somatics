@@ -4,6 +4,7 @@
 #define TS_OPTIMIZER_H
 
 #include <utility>
+#include <iostream>
 #include "../agents/ts_agent.h"
 #include "../pes/pes.h"
 
@@ -62,6 +63,9 @@ private:
     int step_num;
     bool converged;
     bool failed;
+
+    int* ownership;
+    int threads;
 
 public:
 
