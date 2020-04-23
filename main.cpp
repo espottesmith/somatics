@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
 		}
 #endif
 
-		XTBAdapter adapter = XTBAdapter("xtb", "input.xyz.", "xtb.out.", num_threads_xtb);
+		XTBAdapter adapter = XTBAdapter("xtb", "input.xyz", "xtb.out", num_threads_xtb);
 		double* lb = get_lower_bounds(mol, 1.0);
 		double* ub = get_upper_bounds(mol, 1.0);
 		xtbsurf = XTBSurface(mol, adapter, 0.2, lb, ub);

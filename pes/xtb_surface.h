@@ -27,10 +27,6 @@ public:
 	XTBSurface(Molecule molecule_in, XTBAdapter adapter_in, double accuracy_in,
 			double* lower_bounds_in, double* upper_bounds_in);
 
-	XTBSurface(int num_atoms_in, int charge_in, std::string *species_in, double *coords_in,
-			std::string base_command_in, std::string input_name_in, std::string output_name_in,
-			int num_threads_in, double accuracy_in, double* lower_bounds_in, double* upper_bounds_in);
-
 	XTBSurface();
 
 };
