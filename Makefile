@@ -48,6 +48,7 @@ endif
 
 ifeq ($(USE_OMP), TRUE)
 EXTERN += -fopenmp
+CFLAGS += -fopenmp
 DEFINES += -DUSE_OMP=$(USE_OMP)
 endif
 
