@@ -132,7 +132,7 @@ void get_indices (int* indices, int* sizes, int n) {
 void init_agents(agent_base_t* agent_bases, int num_agent_bases, region_t region) {
 
 	std::random_device rd;
-	std::mt19937 gen(rd());
+	std::mt19937 gen(2);
 
 	int lengths[num_dim];
 	factor(lengths, num_agent_bases);
