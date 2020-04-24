@@ -10,29 +10,29 @@
 #include "common.h"
 
 #ifdef USE_MPI
-#include <mpi.h>
+	#include <mpi.h>
 #endif
 
 #ifdef USE_OMP
-#include <omp.h>
+	#include <omp.h>
 #endif
 
 #ifdef USE_QHULL
-#include "voronoi/voronoi.h"
+	#include "voronoi/voronoi.h"
 #endif
 
 #include "pes/pes.h"
 #include "pes/test_surfaces.h"
 
 #ifdef USE_MOLECULE
-#include "adapters/xtb_adapter.h"
+	#include "adapters/xtb_adapter.h"
 	#include "utils/xyz.h"
 	#include "molecules/molecule.h"
 	#include "pes/xtb_surface.h"
 #endif
 
 #ifdef USE_MIN_FINDER
-#include "swarms/swarm.h"
+	#include "swarms/swarm.h"
 	#include "optimizers/optimizer.h"
 	#include "optimizers/ts_optimizer.h"
 #endif
@@ -85,13 +85,14 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	Molecule mol;
 	std::string surface(surf_name);
 	std::cout << surface << std::endl;
 
 	PotentialEnergySurface* pes;
 
+#ifdef USE_MOLECULE
 	XTBSurface xtbsurf;
+#endif
 
 	Muller_Brown mbsurf;
 	Halgren_Lipscomb hlsurf;
@@ -100,7 +101,8 @@ int main(int argc, char** argv) {
 	Culot_Dive_Nguyen_Ghuysen cdng;
 
 	if (molfile != nullptr) {
-		mol = xyz_to_molecule(molfile);
+#ifdef USE_MOLECULE
+		Molecule mol = xyz_to_molecule(molfile);
 
 		num_dim = mol.get_num_atoms() * 3;
 
@@ -111,13 +113,14 @@ int main(int argc, char** argv) {
 		if (num_threads_xtb == 0) {
 			num_threads_xtb = 1;
 		}
-#endif
+#endif //USE_OMP
 
 		XTBAdapter adapter = XTBAdapter("xtb", "input.xyz.", "xtb.out.", num_threads_xtb);
 		double* lb = get_lower_bounds(mol, 1.0);
 		double* ub = get_upper_bounds(mol, 1.0);
 		xtbsurf = XTBSurface(mol, adapter, 0.2, lb, ub);
 		pes = &xtbsurf;
+#endif //USE_MOLECULE
 
 	} else if (surf_name != nullptr) {
 		num_dim = 2;
