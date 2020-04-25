@@ -249,10 +249,15 @@ void TransitionStateOptimizer::run() {
 		thread_num = omp_get_thread_num();
 #endif
 	    while (!failed && !converged && step_num < num_steps_allowed) {
-	        std::cout << "TSOptimizer (optimize): STEP NUMBER " << step_num << std::endl;
+	    	if (thread_num == 0) {
+	    	    std::cout << "TSOptimizer (optimize): STEP NUMBER " << step_num << std::endl;
+	    	}
 
 	        update();
-			std::cout << "UPDATE FINISHED" << std::endl;
+
+	    	if (thread_num == 0) {
+	    	    std::cout << "UPDATE FINISHED" << std::endl;
+	    	}
 
 	        if (thread_num == 0) {
 	            check_convergence();
@@ -608,6 +613,7 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
     ownership = new int[num_agents_ts * 2];
     if (max_num_threads > num_agents_ts * 2) {
 		omp_set_num_threads(num_agents_ts * 2);
+		std::cout << "TS_OPTIMIZER (constructor): number of threads set to " << omp_get_max_threads() << std::endl;
 		threads = num_agents_ts * 2;
 		for (int i = 0; i < num_agents_ts * 2; i++) {
 			ownership[i] = i;

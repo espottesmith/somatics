@@ -69,7 +69,10 @@ int main(int argc, char** argv) {
 
 	int num_threads = find_int_arg(argc, argv, "-nthreads", 1);
 #ifdef USE_OMP
+	omp_set_dynamic(0);
 	omp_set_num_threads(num_threads);
+	std::cout << "MAIN: NUMBER OF THREADS " << omp_get_num_threads() << std::endl;
+	std::cout << "MAIN: MAX NUMBER OF THREADS " << omp_get_max_threads() << std::endl;
 #endif //USE_OMP
 
 	double min_find_tol = 1.0 * pow(10, -1.0 * find_int_arg(argc, argv, "-mtol", 8));
@@ -230,8 +233,6 @@ int main(int argc, char** argv) {
 
 	int* outpairs = delaunay(minima);
 	int num_min = minima.size();
-
-	omp_set_dynamic(0);
 
 	for (int i = 0; i < num_min; i++) {
   	    for (int j = 0; j < i; j++) {
