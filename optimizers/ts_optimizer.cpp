@@ -21,70 +21,81 @@ void TransitionStateOptimizer::update() {
 	int history_depth = 0;
 	int thread_num = 0;
 
+	#ifdef USE_OMP
+	thread_num = omp_get_thread_num();
+	#endif
+
 	// Update hill score - indicate if swarms are moving uphill or downhill
-	history_hill_scores_one.push_back(hill_score_one);
-	history_hill_scores_two.push_back(hill_score_two);
 
-	hill_score_one = 0.0;
-	hill_score_two = 0.0;
-	for (a = 0; a < num_agents_ts; a++) {
-		hill_score_one += agents_one[a].get_hill_score() / (num_agents_ts * 2);
-		hill_score_two += agents_two[a].get_hill_score() / (num_agents_ts * 2);
+	if (thread_num == 0) {
+		hill_score_one = 0.0;
+		hill_score_two = 0.0;
+		history_hill_scores_one.push_back(hill_score_one);
+		history_hill_scores_two.push_back(hill_score_two);
+
+		for (a = 0; a < num_agents_ts; a++) {
+			hill_score_one += agents_one[a].get_hill_score() / (num_agents_ts * 2);
+			hill_score_two += agents_two[a].get_hill_score() / (num_agents_ts * 2);
+		}
+
+		if (average_grad_norms_one.size() < 10) {
+			history_depth = average_grad_norms_one.size();
+		} else {
+			history_depth = 10;
+		}
+
+		// Use previous gradients (for last ~10 steps) to determine next step size
+		double grad_norm_old_one = 0.0;
+		double grad_norm_old_two = 0.0;
+		double grad_norm_old;
+		for (int i = 0; i < history_depth; i++) {
+			grad_norm_old_one += average_grad_norms_one[i];
+			grad_norm_old_two += average_grad_norms_two[i];
+		}
+		grad_norm_old = (grad_norm_old_one + grad_norm_old_two) / (history_depth * 2);
+
+		double average_grad_norm = (average_grad_norm_one + average_grad_norm_two) / 2;
+
+		// Update step size
+		if (pow(average_grad_norm / grad_norm_old, 2) < 0.33) {
+			step_size *= 0.33;
+		} else if (pow(average_grad_norm / grad_norm_old, 2) > 2) {
+			step_size *= 2.0;
+		}
+		// Limits in place to prevent step size from exploding or vanishing
+		if (step_size > max_step_size) {
+			step_size = max_step_size;
+		} else if (step_size < min_step_size) {
+			step_size = min_step_size;
+		}
 	}
 
-	if (average_grad_norms_one.size() < 10) {
-		history_depth = average_grad_norms_one.size();
-	} else {
-		history_depth = 10;
-	}
-
-	// Use previous gradients (for last ~10 steps) to determine next step size
-	double grad_norm_old_one = 0.0;
-	double grad_norm_old_two = 0.0;
-	double grad_norm_old;
-	for (int i = 0; i < history_depth; i++) {
-		grad_norm_old_one += average_grad_norms_one[i];
-		grad_norm_old_two += average_grad_norms_two[i];
-	}
-	grad_norm_old = (grad_norm_old_one + grad_norm_old_two) / (history_depth * 2);
-
-	double average_grad_norm = (average_grad_norm_one + average_grad_norm_two) / 2;
-
-	// Update step size
-	if (pow(average_grad_norm / grad_norm_old, 2) < 0.33) {
-		step_size *= 0.33;
-	} else if (pow(average_grad_norm / grad_norm_old, 2) > 2) {
-		step_size *= 2.0;
-	}
-	// Limits in place to prevent step size from exploding or vanishing
-	if (step_size > max_step_size) {
-		step_size = max_step_size;
-	} else if (step_size < min_step_size) {
-		step_size = min_step_size;
-	}
-
-	// We don't use a random seed here
 	std::random_device rd;
 	std::mt19937 gen(rd());
 	std::uniform_real_distribution<double> rand_weighting(0.0, 1.0);
 
 	// Update positions, energies, gradients for both swarms
-#pragma omp parallel for
-	for (a = 0; a < num_agents_ts; a++) {
+	for (a = 0; a < num_agents_ts * 2; a++) {
 		std::cout << omp_get_thread_num() << std::endl;
-		agents_one[a].update_position();
-		agents_one[a].update_energy(pes);
-		agents_one[a].update_gradient(pes);
-		current_positions_one[a] = agents_one[a].get_position();
-		grad_rmss_one[a] = agents_one[a].get_grad_rms();
-		grad_norms_one[a] = agents_one[a].get_grad_norm();
+		if (ownership[a] == thread_num) {
+			if (a > num_agents_ts) {
+				agent_id = a % num_agents_ts;
 
-		agents_two[a].update_position();
-		agents_two[a].update_energy(pes);
-		agents_two[a].update_gradient(pes);
-		current_positions_two[a] = agents_two[a].get_position();
-		grad_rmss_two[a] = agents_two[a].get_grad_rms();
-		grad_norms_two[a] = agents_two[a].get_grad_norm();
+				agents_two[agent_id].update_position();
+				agents_two[agent_id].update_energy(pes);
+				agents_two[agent_id].update_gradient(pes);
+				current_positions_two[agent_id] = agents_two[agent_id].get_position();
+				grad_rmss_two[agent_id] = agents_two[agent_id].get_grad_rms();
+				grad_norms_two[agent_id] = agents_two[agent_id].get_grad_norm();
+			} else {
+				agents_one[a].update_position();
+				agents_one[a].update_energy(pes);
+				agents_one[a].update_gradient(pes);
+				current_positions_one[a] = agents_one[a].get_position();
+				grad_rmss_one[a] = agents_one[a].get_grad_rms();
+				grad_norms_one[a] = agents_one[a].get_grad_norm();
+			}
+		}
 	}
 
 #pragma omp barrier
@@ -107,7 +118,7 @@ void TransitionStateOptimizer::update() {
 
 	// For scoring, each agent needs to know how far it is and how far others are
 	// With respect to minima and with respect to the other swarm
-	for (a = 0; a < num_agents_ts; a++) {
+	for (a = 0; a < num_agents_ts * 2; a++) {
 		if (ownership[a] == thread_num) {
 			if (a >= num_agents_ts) {
 				agent_id = a % num_agents_ts;
@@ -153,7 +164,7 @@ void TransitionStateOptimizer::update() {
 #pragma omp barrier
 
 	// Gather scores
-	for (a = 0; a < num_agents_ts; a++) {
+	for (a = 0; a < num_agents_ts * 2; a++) {
 		if (ownership[a] == thread_num) {
 			if (a >= num_agents_ts) {
 				agent_id = a % num_agents_ts;
@@ -174,7 +185,7 @@ void TransitionStateOptimizer::update() {
 	double *rando_one = new double[num_dim];
 	double *rando_two = new double[num_dim];
 
-	for (a = 0; a < num_agents_ts; a++) {
+	for (a = 0; a < num_agents_ts * 2; a++) {
 		if (ownership[a] == thread_num) {
 			if (a >= num_agents_ts) {
 				agent_id = a % num_agents_ts;
@@ -229,49 +240,55 @@ void TransitionStateOptimizer::run() {
     std::ofstream fsave;
     fsave.open(filename);
 
-    std::cout << omp_get_num_threads() << std::endl;
+    std::cout << "TransitionStateOptimizer (run): " << omp_get_num_threads() << " threads" << std::endl;
 
-    while (!failed && !converged && step_num < num_steps_allowed) {
-        std::cout << "TSOptimizer (optimize): STEP NUMBER " << step_num << std::endl;
+#pragma omp parallel
+    {
+		int thread_num = 0;
+#ifdef USE_OMP
+		thread_num = omp_get_thread_num();
+#endif
+	    while (!failed && !converged && step_num < num_steps_allowed) {
+	        std::cout << "TSOptimizer (optimize): STEP NUMBER " << step_num << std::endl;
 
-        update();
-		std::cout << "UPDATE FINISHED" << std::endl;
+	        update();
+			std::cout << "UPDATE FINISHED" << std::endl;
 
-        if (omp_get_thread_num() == 0) {
-            check_convergence();
+	        if (thread_num == 0) {
+	            check_convergence();
 
-	        // Print to file output
+		        // Print to file output
 
-	        if (step_num % save_freq == 0 && fsave.good()) {
-		    static bool first = true;
+		        if (step_num % save_freq == 0 && fsave.good()) {
+			    static bool first = true;
 
-		    if (first) {
-		        fsave << num_agents_ts * 2 << " ";
-		        for (int d = 0; d < num_dim; d++) {
-		            fsave << pes->get_lower_bound(d) << " " << pes->get_upper_bound(d) << " ";
-		        }
-		        fsave << std::endl;
-		        first = false;
-		    }
+			    if (first) {
+			        fsave << num_agents_ts * 2 << " ";
+			        for (int d = 0; d < num_dim; d++) {
+			            fsave << pes->get_lower_bound(d) << " " << pes->get_upper_bound(d) << " ";
+			        }
+			        fsave << std::endl;
+			        first = false;
+			    }
 
-		    for (int i = 0; i < num_agents_ts; ++i) {
-		        for (int d = 0; d < num_dim; d++) {
-		            fsave << current_positions_one[i][d] << " ";
-		        }
-		        fsave << std::endl;
-		    }
+			    for (int i = 0; i < num_agents_ts; ++i) {
+			        for (int d = 0; d < num_dim; d++) {
+			            fsave << current_positions_one[i][d] << " ";
+			        }
+			        fsave << std::endl;
+			    }
 
-		    for (int i = 0; i < num_agents_ts; ++i) {
-		        for (int d = 0; d < num_dim; d++) {
-		            fsave << current_positions_two[i][d] << " ";
-		        }
-		        fsave << std::endl;
-		    }
-		}
-
-	        step_num++;
-        }
-    }
+			    for (int i = 0; i < num_agents_ts; ++i) {
+			        for (int d = 0; d < num_dim; d++) {
+			            fsave << current_positions_two[i][d] << " ";
+			        }
+			        fsave << std::endl;
+			    }
+			}
+		        step_num++;
+	        }
+	    }
+	}
 
     if (converged) {
 		std::cout << "PATH CONSTRUCTION SUCCEEDED" << std::endl;
@@ -288,8 +305,6 @@ double* TransitionStateOptimizer::find_ts() {
 	// Criteria for TS
 	// First, find range of steps (say, 5) where the rolling average is lowest (indicating sign change)
 	// Pick the hill score in that range closest to zero
-	// TODO: INCLUDE CONSIDERATION OF VARIANCE
-	// High variance among hill scores is indicative of a TS
 	// Pick the agent at that step with the smallest gradient
 
 	double min_average_one = std::numeric_limits<double>::infinity();
