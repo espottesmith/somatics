@@ -61,8 +61,6 @@ private:
     double min_distance_minima;
     int num_steps_allowed;
     int step_num;
-    bool converged;
-    bool failed;
 
     int* ownership;
     int threads;
@@ -70,7 +68,7 @@ private:
 public:
 
     void update();
-    void check_convergence();
+    bool check_convergence();
     void run();
     double* find_ts();
 

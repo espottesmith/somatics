@@ -19,15 +19,13 @@ void TransitionStateOptimizer::update() {
 	int a;
 	int agent_id;
 	int history_depth = 0;
-	int thread_num = 0;
 
-#ifdef USE_OMP
-	thread_num = omp_get_thread_num();
-#endif
+	int thread_num = omp_get_thread_num();
 
 	// Update hill score - indicate if swarms are moving uphill or downhill
 
-	if (thread_num == 0) {
+#pragma omp master
+	 {
 		hill_score_one = 0.0;
 		hill_score_two = 0.0;
 		history_hill_scores_one.push_back(hill_score_one);
@@ -76,9 +74,8 @@ void TransitionStateOptimizer::update() {
 
 	// Update positions, energies, gradients for both swarms
 	for (a = 0; a < num_agents_ts * 2; a++) {
-		std::cout << omp_get_thread_num() << std::endl;
 		if (ownership[a] == thread_num) {
-			if (a > num_agents_ts) {
+			if (a >= num_agents_ts) {
 				agent_id = a % num_agents_ts;
 
 				agents_two[agent_id].update_position();
@@ -100,7 +97,9 @@ void TransitionStateOptimizer::update() {
 
 #pragma omp barrier
 
-	if (thread_num == 0) {
+#pragma omp master
+	{
+		// std::cout << "TSOptimizer (update): past first barrier" << std::endl;
 		// Average position of swarms; used for scoring swarms and directing motion
 		average_position_one = vector_average(current_positions_one, num_dim);
 		average_position_two = vector_average(current_positions_two, num_dim);
@@ -163,6 +162,9 @@ void TransitionStateOptimizer::update() {
 
 #pragma omp barrier
 
+// #pragma omp master
+// 	std::cout << "TSOptimizer (update): past second barrier" << std::endl;
+
 	// Gather scores
 	for (a = 0; a < num_agents_ts * 2; a++) {
 		if (ownership[a] == thread_num) {
@@ -181,6 +183,9 @@ void TransitionStateOptimizer::update() {
 
 #pragma omp barrier
 
+// #pragma omp master
+// 	std::cout << "TSOptimizer (update): past third barrier" << std::endl;
+
 	// Define movement vectors for each agent
 	double *rando_one = new double[num_dim];
 	double *rando_two = new double[num_dim];
@@ -193,7 +198,6 @@ void TransitionStateOptimizer::update() {
 					rando_two[d] = rand_weighting(gen);
 				}
 
-				agent_id = agent_id % num_agents_ts;
 				agents_two[agent_id].update_velocity(scores_two, current_positions_two, average_position_two,
 				                                     average_position_one, rando_two, step_size);
 				hill_scores_two[agent_id] = agents_two[agent_id].get_hill_score();
@@ -202,17 +206,18 @@ void TransitionStateOptimizer::update() {
 					rando_one[d] = rand_weighting(gen);
 				}
 
-				agents_one[agent_id].update_velocity(scores_one, current_positions_one, average_position_one,
-				                                     average_position_two, rando_one, step_size);
-				hill_scores_one[agent_id] = agents_one[agent_id].get_hill_score();
+				agents_one[a].update_velocity(scores_one, current_positions_one, average_position_one,
+						average_position_two, rando_one, step_size);
+				hill_scores_one[a] = agents_one[a].get_hill_score();
 			}
 		}
 	}
-#pragma omp barrier
+// #pragma omp master
+// 	std::cout << "TSOptimizer (update): past final barrier" << std::endl;
 }
 
 
-void TransitionStateOptimizer::check_convergence(){
+bool TransitionStateOptimizer::check_convergence(){
     bool swarms_close = false;
     bool take_another_step = true;
 
@@ -222,17 +227,10 @@ void TransitionStateOptimizer::check_convergence(){
     }
 
     if (swarms_close) {
-        std::cout << "CONVERGENCE REACHED!" << std::endl;
-        converged = true;
-    }
-
-    if (step_num >= num_steps_allowed) {
-        if (converged) {
-            failed = false;
-        } else {
-            failed = true;
-        }
-    }
+        return true;
+    } else {
+    	return false;
+    };
 
 }
 
@@ -240,30 +238,32 @@ void TransitionStateOptimizer::run() {
     std::ofstream fsave;
     fsave.open(filename);
 
+	bool all_converged = false;
 
 #pragma omp parallel
     {
-		int thread_num = 0;
-#ifdef USE_OMP
-		thread_num = omp_get_thread_num();
-#endif
-		if (thread_num == 0) {
-			std::cout << "TransitionStateOptimizer (run): " << omp_get_num_threads() << " threads" << std::endl;
-		}
-	    while (!failed && !converged && step_num < num_steps_allowed) {
-	    	if (thread_num == 0) {
-	    	    std::cout << "TSOptimizer (optimize): STEP NUMBER " << step_num << std::endl;
+    	bool converged = false;
+		int thread_num = omp_get_thread_num();
+
+	    for (int s = 0; s < num_steps_allowed; s++) {
+
+	    	if (converged) {
+	    		s = num_steps_allowed;
 	    	}
+
+#pragma omp master
+            std::cout << "TSOptimizer (run): STEP NUMBER " << step_num << std::endl;
 
 	        update();
+#pragma omp barrier
 
-	    	if (thread_num == 0) {
-	    	    std::cout << "UPDATE FINISHED" << std::endl;
-	    	}
+            converged = check_convergence();
 
-	        if (thread_num == 0) {
-	            check_convergence();
-
+#pragma omp master
+	        {
+	        	if (converged) {
+	        		all_converged = true;
+	        	}
 		        // Print to file output
 
 		        if (step_num % save_freq == 0 && fsave.good()) {
@@ -297,7 +297,7 @@ void TransitionStateOptimizer::run() {
 	    }
 	}
 
-    if (converged) {
+    if (all_converged) {
 		std::cout << "PATH CONSTRUCTION SUCCEEDED" << std::endl;
     } else {
         std::cout << "PATH CONSTRUCTION FAILED" << std::endl;
@@ -492,9 +492,6 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
     save_freq = save_freq_in;
     filename = filename_in;
 
-    failed = false;
-    converged = false;
-
     double upper_bound, lower_bound;
 
     std::random_device rd;
@@ -615,7 +612,6 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
     	ownership[a] = 0;
     }
 
-#ifdef USE_OMP
     omp_set_dynamic(0);
 	omp_set_num_threads(num_threads);
     int max_num_threads = omp_get_max_threads();
@@ -668,5 +664,4 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
 		std::cout << ownership[i] << " ";
     }
     std::cout << std::endl;
-#endif
 }
