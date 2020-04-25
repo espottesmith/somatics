@@ -89,9 +89,6 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	std::string surface(surf_name);
-	std::cout << surface << std::endl;
-
 	PotentialEnergySurface* pes;
 
 #ifdef USE_MOLECULE
