@@ -630,61 +630,65 @@ class MinimaNicheSwarm : public MinimaSwarm {
 
 #ifdef USE_MPI
 
-  void form_subswarm_reduce_mpi ( int rank, int num_procs ) {
-
-    int size_to_form = 0;
-    std::vector< agent_base_t > agent_base_to_form ( size_to_form );
-    double* pos_to_form;
-
-    struct double_int{ double d; int i; };
-
+  void form_subswarm_reduce_mpi ( std::vector< mapping_t >& map_to_form,
+				  std::vector< agent_base_t >& agent_base_to_form,
+				  std::vector< double > pos_to_form, int size_to_form,
+				  std::vector < int >& idx_to_remove ) {
+    
     MPI_Request requests[num_procs];
     int sizes_to_form[num_procs];
     std::vector < std::vector < double     > > positions( num_dim * num_procs );
     std::vector < std::vector < double_int > > distances( num_procs );
 
-    form_subswarm_reduce ( agent_base_to_form, pos_to_form, size_to_form,
-			   rank, num_proc );
+    map_to_form.resize(size_to_form);
+    agent_base_to_form.resize(size_to_form);
+    idx_to_remove.resize(0);
+    sizes_to_form[mpi_rank] = size_to_form;
 
-    sizes_to_form[rank] = size_to_form;
+    int buffsize = num_agents_min_tot/num_procs + 1;
 
-    MPI_Ibcast(&sizes_to_form[rank], 1, MPI_INT, rank, MPI_COMM_WORLD, requests[rank]);
+    printf("size_to_form = %i \n", sizes_to_form[mpi_rank]);
 
-    for (int p = 0; p < num_proc; p++) {
-      if (p != rank) {
-	MPI_Ibcast(&sizes_to_form[p], 1, MPI_INT, p, MPI_COMM_WORLD, requests[p]);
-      }
-    }
+    MPI_Ibcast(&sizes_to_form[mpi_rank], 1, MPI_INT, mpi_rank, MPI_COMM_WORLD, &requests[mpi_rank]);
 
-    MPI_Barrier( MPI_COMM_WORLD );
-
-    for (int p = 0; p < num_proc; p++) {
-      distances[p].resize( sizes_to_form[p] );
-      positions[p].resize( num_dim * sizes_to_form[p] );
-    }
-
-    for (int i = 0; i < sizes_to_form[rank]; i++) {
-      for (int d = 0; d < num_dim; d++) {
-	positions[rank][num_dim * i + d] = pos_to_form[num_dim * i + d];
-      }
-    }
-
-    if (sizes_to_form[rank] > 0)
-      MPI_Ibcast(&positions[rank][0], num_dim * sizes_to_form[rank],
-		 MPI_DOUBLE, rank, MPI_COMM_WORLD, requests[rank]);
-
-    for (int p = 0; p < num_proc; p++) {
-      if (p != rank) {
-	if (sizes_to_form[p] > 0)
-	  MPI_Ibcast(&positions[p], num_dim * sizes_to_form[p],
-		     MPI_DOUBLE, p, MPI_COMM_WORLD, requests[p]);
+    for (int p = 0; p < num_procs; p++) {
+      if (p != mpi_rank) {
+	MPI_Ibcast(&sizes_to_form[p], 1, MPI_INT, p, MPI_COMM_WORLD, &requests[p]);
       }
     }
 
     MPI_Barrier( MPI_COMM_WORLD );
 
     for (int p = 0; p < num_procs; p++) {
-      if (p != rank) {
+
+      printf("size_to_form = %i (rank = %i)\n", sizes_to_form[p], mpi_rank);
+      
+      distances[p].resize( sizes_to_form[p] );
+      positions[p].resize( num_dim * sizes_to_form[p] );
+    }
+
+    for (int i = 0; i < sizes_to_form[mpi_rank]; i++) {
+      for (int d = 0; d < num_dim; d++) {
+	positions[mpi_rank][num_dim * i + d] = pos_to_form[num_dim * i + d];
+      }
+    }
+
+    if (sizes_to_form[mpi_rank] > 0)
+      MPI_Ibcast(&positions[mpi_rank][0], num_dim * sizes_to_form[mpi_rank],
+		 MPI_DOUBLE, mpi_rank, MPI_COMM_WORLD, &requests[mpi_rank]);
+
+    for (int p = 0; p < num_procs; p++) {
+      if (p != mpi_rank) {
+	if (sizes_to_form[p] > 0)
+	  MPI_Ibcast(&positions[p], num_dim * sizes_to_form[p],
+		     MPI_DOUBLE, p, MPI_COMM_WORLD, &requests[p]);
+      }
+    }
+
+    MPI_Barrier( MPI_COMM_WORLD );
+
+    for (int p = 0; p < num_procs; p++) {
+      if (p != mpi_rank) {
 	for (int i = 0; i < sizes_to_form[p]; i++) {
 	  double dist_sq_min = -1.0;
 	  int mapping = -1;
@@ -692,7 +696,7 @@ class MinimaNicheSwarm : public MinimaSwarm {
 	    double dist_sq = compute_dist_sq (&(positions[p][num_dim * i]), agents[j].base.pos);
 	    if (dist_sq < dist_sq_min || dist_sq_min == -1.0) {
 	      dist_sq_min = dist_sq;
-	      mapping = (tot_num_min_agent / num_proc) * rank + j;
+	      mapping = buffsize * buffsize * mpi_rank + buffsize * num_subswarm + j;
 	    }
 	  }
 	  distances[p][i].d = dist_sq_min;
@@ -707,36 +711,31 @@ class MinimaNicheSwarm : public MinimaSwarm {
 		      MPI_DOUBLE_INT, MPI_MINLOC, MPI_COMM_WORLD);
     }
 
-    std::vector < int > indx_to_remove ( 0 );
+    /* for (int p = 0; p < num_procs; p++) { */
+    /*   for (int i = 0; i < sizes_to_form[p]; i++) { */
+    /* 	int rank_to_send = ; */
+    /* 	int indx_to_send = ; */
+    /* 	if (mpi_rank == rank_to_send) { */
+    /* 	  MPI_Isend(&(agents[indx_to_send].base), 1, AgentBaseMPI, */
+    /* 		    p, 0, MPI_COMM_WORLD, &requests[mpi_rank]); */
+    /* 	  idx_to_remove.push_back( indx_to_send ); */
+    /* 	} */
+    /*   } */
+    /* } */
 
-    for (int p = 0; p < num_procs; p++) {
-      for (int i = 0; i < sizes_to_form[p]; i++) {
-	int rank_to_send = distances[p][i].i / (tot_num_min_agent/num_proc);
-	int indx_to_send = distances[p][i].i % (tot_num_min_agent/num_proc);
-	if (rank == rank_to_send) {
-	  MPI_Isend(&(agents[indx_to_send].base), 1, AgentBaseMPI,
-		    p, 0, MPI_COMM_WORLD, &request);
-	  indx_to_remove.push_back( indx_to_send );
-	}
+    for (int i = 0; i < sizes_to_form[mpi_rank]; i++) {
+      int indices[3];
+      int sizes[3] = {buffsize, buffsize, num_procs};
+      get_indices (indices, sizes, distances[mpi_rank][i].i, 3);
+      map_to_form[i].part_idx   = indices[0];
+      map_to_form[i].swarm_idx  = indices[1];
+      map_to_form[i].rank       = indices[2];
+      if (map_to_form[i].rank == mpi_rank) {
+	idx_to_remove.push_back( map_to_form[i].part_idx );
+	agent_base_to_form[i] = agents[map_to_form[i].part_idx].base;
       }
-    }
-
-    for (int i = indx_to_remove.size() - 1; i >= 0; i--) {
-
-      int q = indx_to_remove[i];
-      for (int j = 0; j < idx_to_remove.size(); j++) {
-	if (to_remove[j] > q) { idx_to_remove[j]--; }
-      }
-
-      agents.erase ( agents.begin() + q );
-      num_min_agent--;
-
-    }
-
-    for (int i = 0; i < sizes_to_form[rank]; i++) {
-      int rank_to_recv = distances[rank][i].i / (tot_num_min_agent/num_proc);
-      MPI_Irecv(&agent_base_to_form[i], 1, AgentBaseMPI,
-		rank_to_recv, 0, MPI_COMM_WORLD, &request);
+      /* MPI_Irecv(&agent_base_to_form[i], 1, AgentBaseMPI, */
+      /* 		rank_to_recv, 0, MPI_COMM_WORLD, &requests[rank_to_recv]); */
     }
 
     MPI_Barrier( MPI_COMM_WORLD );
@@ -752,6 +751,7 @@ class MinimaNicheSwarm : public MinimaSwarm {
     
     std::vector<int> idx_for_forming (0);
     std::vector<agent_base_t> agent_base_to_form (0);
+    std::vector< double > pos_to_form (0);
     std::vector<bool> ready_to_form (0);
 
     for (int p = 0; p < num_min_agent; p++) {
@@ -766,11 +766,13 @@ class MinimaNicheSwarm : public MinimaSwarm {
       }
     }
 
-    agent_base_to_form.resize( idx_for_forming.size() );
-    ready_to_form.resize( idx_for_forming.size() );
+    int size_to_form = idx_for_forming.size();
+    agent_base_to_form.resize( size_to_form );
+    ready_to_form.resize( size_to_form );
 
 #ifdef USE_MPI
-
+    std::vector< mapping_t > map_to_form( size_to_form );
+    form_subswarm_reduce_mpi( map_to_form, agent_base_to_form, pos_to_form, size_to_form, to_remove );
 #else
 
     for (int i = 0; i < idx_for_forming.size(); i++) {

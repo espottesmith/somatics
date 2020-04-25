@@ -190,19 +190,15 @@ class MinimaNicheOptimizer {
       printf("Form new subswarms \n");
       swarm.form_subswarms();
 
+#ifdef USE_MPI
+      MPI_Barrier( MPI_COMM_WORLD );
+#endif
+      
       //////////////////////////////////////////////////////////////////////
 
       step++;
 
     }
-
-    /* void gather () { */
-
-    /*   tot_num_subswarms */
-
-    /*   MPI_Allreduce ( */
-
-    /* } */
 
     minima.resize(swarm.pos_best_globals.size());
     for (int i = 0; i < minima.size(); i++) {

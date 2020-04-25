@@ -41,9 +41,13 @@
 // Main Function
 // ==============
 
-int num_agents_min;
+int num_agents_min_tot;
 int num_agents_ts;
 int num_dim;
+
+#ifdef USE_MPI
+int num_procs, mpi_rank;
+#endif
 
 int main(int argc, char** argv) {
 	// Parse Args
@@ -64,7 +68,7 @@ int main(int argc, char** argv) {
 	}
 
 	// Initialize Particles
-	num_agents_min = find_int_arg(argc, argv, "-nmin", 1000);
+	num_agents_min_tot = find_int_arg(argc, argv, "-nmin", 1000);
 	num_agents_ts = find_int_arg(argc, argv, "-nts", 8);
 
 	int num_threads = find_int_arg(argc, argv, "-nthreads", 1);
@@ -154,19 +158,30 @@ int main(int argc, char** argv) {
 
 	std::cout << "Defined surface" << std::endl;
 
-// #ifdef USE_MPI
-// 	/////////////////////////////////////////////////////////////
-// 	// Init MPI
-// 	int num_procs, rank;
-// 	MPI_Init(&argc, &argv);
-// 	MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
-// 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-// 	init_mpi_structs ();
-// #endif
+#ifdef USE_MPI
+	/////////////////////////////////////////////////////////////
+	// Init MPI
+	MPI_Init(&argc, &argv);
+	MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
+	MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+	init_mpi_structs ();
+#endif
 
 #ifdef USE_MIN_FINDER
 
+#ifdef USE_MPI
+	std::string filename = "minima" + std::to_string(mpi_rank) + ".txt";
+	std::ofstream fsave(filename);
+
+	int num_agents_min = (num_agents_min_tot + num_procs - 1) / num_procs;
+	if (rank == num_procs - 1) {
+	  num_agents_min -= num_procs * num_agents_min - num_agents_min_tot;
+	}
+#else
 	std::ofstream fsave("minima.txt");
+
+	int num_agents_min = num_agents_min_tot;
+#endif
 
 	agent_base_t* min_agent_bases = new agent_base_t[num_agents_min];
 
@@ -176,12 +191,24 @@ int main(int argc, char** argv) {
 		min_agent_bases[a].pos_best = new double[num_dim];
 	}
 	
+#ifdef USE_MPI
+	int decomp [num_dim];
+	factor (decomp, num_procs, num_dim);
+#endif
+	
 	region_t region;
 	region.lo = new double[num_dim];
 	region.hi = new double[num_dim];
 	for (int d = 0; d < num_dim; d++) {
-		region.lo[d] = pes->get_lower_bound(d);
+	        region.lo[d] = pes->get_lower_bound(d);
 		region.hi[d] = pes->get_upper_bound(d);
+#ifdef USE_MPI
+	        int decomp_indices[num_dim];
+	        get_indices (decomp_indices, decomp, mpi_rank, num_dim);
+		double size = (region.hi[d] - region.lo[d]) / decomp[d];
+		region.lo[d] = region.lo[d] + size * decomp_indices[d];
+		region.hi[d] = region.lo[d] + size * (1 + decomp_indices[d]);
+#endif
 	}
 	std::cout << "Defined region" << std::endl;
 
@@ -207,7 +234,6 @@ int main(int argc, char** argv) {
 
 	auto t_start_min_find = std::chrono::steady_clock::now();
 
-	// optimizer.optimize(fsave);
 	std::vector<double*> minima = optimizer.optimize(fsave);
 	auto t_end_min_find = std::chrono::steady_clock::now();
 	std::chrono::duration<double> diff = t_end_min_find - t_start_min_find;
