@@ -44,6 +44,7 @@
 int num_agents_min;
 int num_agents_ts;
 int num_dim;
+int num_threads;
 
 int main(int argc, char** argv) {
 	// Parse Args
@@ -67,7 +68,7 @@ int main(int argc, char** argv) {
 	num_agents_min = find_int_arg(argc, argv, "-nmin", 1000);
 	num_agents_ts = find_int_arg(argc, argv, "-nts", 8);
 
-	int num_threads = find_int_arg(argc, argv, "-nthreads", 1);
+	num_threads = find_int_arg(argc, argv, "-nthreads", 1);
 #ifdef USE_OMP
 	omp_set_dynamic(0);
 	omp_set_num_threads(num_threads);
