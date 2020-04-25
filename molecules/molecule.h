@@ -6,6 +6,7 @@
 #define MOLECULE_H
 
 #include <string>
+#include <vector>
 
 extern const std::string ATOMIC_SYMBOLS[];
 
@@ -31,10 +32,9 @@ public:
 	std::string get_specie(int index) { return species[index]; }
 	double* get_coords() { return coords; }
 	double* get_atom_position(int index);
+	double* get_pairwise_distances();
 
 	// Setters
-	// This isn't safe, but I'd really rather not have to use vectors here...
-	// TODO: Figure out a way to guarantee length is the same
 	void set_coords(double* coords_in) { coords = coords_in; }
 	void set_charge(int charge_in);
 

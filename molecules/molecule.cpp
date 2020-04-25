@@ -1,4 +1,5 @@
 #include "molecule.h"
+#include "../utils/math.h"
 
 const std::string ATOMIC_SYMBOLS[] = {"H", "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne", "Na", "Mg",
 									"Al", "Si", "P", "S", "Cl", "Ar", "K", "Ca", "Sc", "Ti", "V", "Cr",
@@ -18,7 +19,7 @@ int get_electrons_for_element(std::string element) {
 	return -1;
 }
 
-double* Molecule::get_atom_position(int index){
+double* Molecule::get_atom_position(int index) {
 	double* position = new double[3];
 
 	if (index > num_atoms) {
@@ -30,6 +31,33 @@ double* Molecule::get_atom_position(int index){
 	position[2] = coords[index * 3 + 2];
 
 	return position;
+}
+
+double* Molecule::get_pairwise_distances() {
+	int num_atoms = get_num_atoms();
+	int num_atoms_squared = num_atoms * num_atoms;
+	double* pairwise_distances = new double[num_atoms_squared];
+	for (int v = 0; v < num_atoms_squared; v++) {
+		pairwise_distances[v] = 0.0;
+	}
+
+	double* a_pos;
+	double* b_pos;
+	double dist_ab;
+
+	for (int a = 0; a < num_atoms; a++) {
+		a_pos = get_atom_position(a);
+		for (int b = 0; b < a; b++) {
+			b_pos = get_atom_position(b);
+
+			dist_ab = distance(a_pos, b_pos, 3);
+			pairwise_distances[a * num_atoms + b] = dist_ab;
+			pairwise_distances[b * num_atoms + a] = dist_ab;
+		}
+	}
+
+	return pairwise_distances;
+
 }
 
 void Molecule::set_charge(int charge_in) {

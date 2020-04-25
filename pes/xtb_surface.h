@@ -7,8 +7,8 @@
 #include "../adapters/xtb_adapter.h"
 #include "../molecules/molecule.h"
 
-double* get_lower_bounds(Molecule mol, double movement);
-double* get_upper_bounds(Molecule mol, double movement);
+double* get_lower_bounds(Molecule mol);
+double* get_upper_bounds(Molecule mol);
 
 class XTBSurface: public PotentialEnergySurface {
 private:
