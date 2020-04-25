@@ -13,6 +13,7 @@ double* get_lower_bounds(Molecule mol) {
 	double* start = mol.get_coords();
 	double* result = new double[dimension];
 
+	double dist;
 	double min_dist = std::numeric_limits<double>::infinity();
 	for (int a = 0; a < num_atoms; a++) {
 		for (int b = 0; b < a; b++) {
@@ -39,6 +40,7 @@ double* get_upper_bounds(Molecule mol) {
 	double* start = mol.get_coords();
 	double* result = new double[dimension];
 
+	double dist;
 	double min_dist = std::numeric_limits<double>::infinity();
 	for (int a = 0; a < num_atoms; a++) {
 		for (int b = 0; b < a; b++) {
