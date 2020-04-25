@@ -85,7 +85,6 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	Molecule mol;
 	std::string surface(surf_name);
 	std::cout << surface << std::endl;
 
@@ -138,7 +137,7 @@ int main(int argc, char** argv) {
 			double ub[2] = {4.0, 4.0};
 			hlsurf = Halgren_Lipscomb(lb, ub);
 			pes = &hlsurf;
-		} else if (surface == "Cerjan_Milller") {
+		} else if (surface == "Cerjan_Miller") {
 			double lb[2] = {-2.5, -1.5};
 			double ub[2] = {2.5, 1.5};
 			cmsurf = Cerjan_Miller(lb, ub);
