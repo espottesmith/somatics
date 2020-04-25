@@ -129,10 +129,10 @@ class MinimaNicheOptimizer {
 
     int num_min_agent = swarm.num_min_agent;
 
-    int step = 0;
     double fitness_diff = -1.0;
-    while (step < max_iter && (fitness_diff > min_find_tol || fitness_diff <= 0.0)) {
-      // while (step < max_iter) {
+
+    for (int step = 0; (step < max_iter) && (fitness_diff > min_find_tol || fitness_diff <= 0.0); ++step) {
+
       fitness_diff = fitness_best_global;
 
       // Save state
@@ -191,8 +191,6 @@ class MinimaNicheOptimizer {
       swarm.form_subswarms();
 
       //////////////////////////////////////////////////////////////////////
-
-      step++;
 
     }
 

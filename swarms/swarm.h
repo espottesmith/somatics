@@ -25,7 +25,7 @@ using namespace std;
 ////////////////////////////////
 // Random numbers
 std::random_device rd;
-std::mt19937 gen(rd());
+std::mt19937 gen(1);
 std::uniform_real_distribution<float> rand_vel_weighting (0.0, 1.0);
 ////////////////////////////////
 
@@ -260,14 +260,19 @@ class MinimaSwarm {
 
   void update_fitnesses (double& fitness_best_global, std::vector<double> &pos_best_global) {
 #ifdef USE_OMP
-    //TODO: REPLACE
-    // int tid =omp_get_num_threads();
-    int tid = 0;
+    omp_set_num_threads(64);
+#pragma omp parallel default(shared)
+    {
+    #pragma omp for
 #endif
     for (int p = 0; p < num_min_agent; p++) {
-
       agents[p].fitness_calc(pot_energy_surf);
-            
+    }
+#ifdef USE_OMP
+    }
+#endif
+
+    for (int p = 0; p < num_min_agent; p++) {
       if ( agents[p].base.fitness < fitness_best_global ||  fitness_best_global == -1.0 ) {
 	index_best = p;
 	for (int d=0; d<num_dim; d++) {
@@ -284,10 +289,20 @@ class MinimaSwarm {
 
     double fitness_best_global_old = fitness_best_global;
 
-    for (int p=0; p<num_min_agent; p++) {
-
+#ifdef USE_OMP
+    omp_set_num_threads(64);
+#pragma omp parallel default(shared)
+    {
+    #pragma omp for
+#endif
+    for (int p = 0; p < num_min_agent; p++) {
       agents[p].fitness_calc(pot_energy_surf);
+    }
+#ifdef USE_OMP
+    }
+#endif
 
+    for (int p=0; p<num_min_agent; p++) {
       if ( agents[p].base.fitness < fitness_best_global ||  fitness_best_global == -1.0 ) {
 	index_best = p;
 	for (int d=0; d<num_dim; d++) {
@@ -321,32 +336,54 @@ class MinimaSwarm {
   }
 
   void update_velocities (std::vector< double > pos_best_global) {
-
-    for (int p=0; p<num_min_agent; p++) {
+#ifdef USE_OMP
+    omp_set_num_threads(64);
+#pragma omp parallel default(shared)
+    {
+    #pragma omp for
+#endif
+    for (int p = 0; p < num_min_agent; p++) {
       agents[p].update_velocity(pos_best_global);
     }
+#ifdef USE_OMP
+    }
+#endif
 
   }
 
   void update_velocities_gcpso (std::vector< double > pos_best_global) {
-
-    agents[index_best].update_velocity_best(pos_best_global, rho);
-
-    for (int p=0; p<index_best; p++) {
-      agents[p].update_velocity(pos_best_global);
+#ifdef USE_OMP
+    omp_set_num_threads(64);
+#pragma omp parallel default(shared)
+    {
+    #pragma omp for
+#endif
+    for (int p = 0; p < num_min_agent; p++) {
+      if (p == index_best) {
+        agents[index_best].update_velocity_best(pos_best_global, rho);
+      }
+      else {
+	agents[p].update_velocity(pos_best_global);
+      }
     }
-
-    for (int p=index_best+1; p<num_min_agent; p++) {
-      agents[p].update_velocity(pos_best_global);
+#ifdef USE_OMP
     }
-
+#endif
   }
 
   void move_swarm () {
-
-    for (int p=0; p<num_min_agent; p++) {
+#ifdef USE_OMP
+    omp_set_num_threads(64);
+#pragma omp parallel default(shared)
+    {
+    #pragma omp for
+#endif
+    for (int p = 0; p < num_min_agent; p++) {
       agents[p].update_position(region);
     }
+#ifdef USE_OMP
+    }
+#endif
 
   }
 

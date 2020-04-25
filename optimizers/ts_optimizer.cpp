@@ -6,17 +6,20 @@
 #include <iostream>
 #include <utility>
 #include <algorithm>
+
+#include <omp.h>
+
 #include "../agents/ts_agent.h"
 #include "ts_optimizer.h"
 #include "../pes/pes.h"
 #include "../utils/math.h"
 #include "../common.h"
 
-//TODO: Need to consider boundary conditions
-
 void TransitionStateOptimizer::update() {
-    int a;
+	int a;
+	int agent_id;
 	int history_depth = 0;
+	int thread_num = 0;
 
 	// Update hill score - indicate if swarms are moving uphill or downhill
 	history_hill_scores_one.push_back(hill_score_one);
@@ -29,16 +32,16 @@ void TransitionStateOptimizer::update() {
 		hill_score_two += agents_two[a].get_hill_score() / (num_agents_ts * 2);
 	}
 
-    if (average_grad_norms_one.size() < 10) {
-    	history_depth = average_grad_norms_one.size();
-    } else {
-        history_depth = 10;
-    }
+	if (average_grad_norms_one.size() < 10) {
+		history_depth = average_grad_norms_one.size();
+	} else {
+		history_depth = 10;
+	}
 
-    // Use previous gradients (for last ~10 steps) to determine next step size
+	// Use previous gradients (for last ~10 steps) to determine next step size
 	double grad_norm_old_one = 0.0;
-    double grad_norm_old_two = 0.0;
-    double grad_norm_old;
+	double grad_norm_old_two = 0.0;
+	double grad_norm_old;
 	for (int i = 0; i < history_depth; i++) {
 		grad_norm_old_one += average_grad_norms_one[i];
 		grad_norm_old_two += average_grad_norms_two[i];
@@ -61,91 +64,142 @@ void TransitionStateOptimizer::update() {
 	}
 
 	// We don't use a random seed here
-    std::random_device rd;
+	std::random_device rd;
 	std::mt19937 gen(rd());
-    std::uniform_real_distribution<double> rand_weighting (0.0, 1.0);
+	std::uniform_real_distribution<double> rand_weighting(0.0, 1.0);
 
-    // Update positions, energies, gradients for both swarms
-    for (a = 0; a < num_agents_ts; a++) {
-        agents_one[a].update_position();
-        agents_one[a].update_energy(pes);
-        agents_one[a].update_gradient(pes);
-        current_positions_one[a] = agents_one[a].get_position();
-        grad_rmss_one[a] = agents_one[a].get_grad_rms();
-        grad_norms_one[a] = agents_one[a].get_grad_norm();
+	// Update positions, energies, gradients for both swarms
+#pragma omp parallel for
+	for (a = 0; a < num_agents_ts; a++) {
+		std::cout << omp_get_thread_num() << std::endl;
+		agents_one[a].update_position();
+		agents_one[a].update_energy(pes);
+		agents_one[a].update_gradient(pes);
+		current_positions_one[a] = agents_one[a].get_position();
+		grad_rmss_one[a] = agents_one[a].get_grad_rms();
+		grad_norms_one[a] = agents_one[a].get_grad_norm();
 
-        agents_two[a].update_position();
-        agents_two[a].update_energy(pes);
-        agents_two[a].update_gradient(pes);
-        current_positions_two[a] = agents_two[a].get_position();
-        grad_rmss_two[a] = agents_two[a].get_grad_rms();
-        grad_norms_two[a] = agents_two[a].get_grad_norm();
-    }
+		agents_two[a].update_position();
+		agents_two[a].update_energy(pes);
+		agents_two[a].update_gradient(pes);
+		current_positions_two[a] = agents_two[a].get_position();
+		grad_rmss_two[a] = agents_two[a].get_grad_rms();
+		grad_norms_two[a] = agents_two[a].get_grad_norm();
+	}
 
-    // Average position of swarms; used for scoring swarms and directing motion
-    average_position_one = vector_average(current_positions_one, num_dim);
-    average_position_two = vector_average(current_positions_two, num_dim);
+#pragma omp barrier
 
-    // Also average gradient metrics
-    // Not really used except for step size right now
-    average_grad_rms_one = average_of_array(grad_rmss_one, num_agents_ts);
-    average_grad_norm_one = average_of_array(grad_norms_one, num_agents_ts);
-    average_grad_norms_one.push_back(average_grad_norm_one);
+	if (thread_num == 0) {
+		// Average position of swarms; used for scoring swarms and directing motion
+		average_position_one = vector_average(current_positions_one, num_dim);
+		average_position_two = vector_average(current_positions_two, num_dim);
 
-    average_grad_rms_two = average_of_array(grad_rmss_two, num_agents_ts);
-    average_grad_norm_two = average_of_array(grad_norms_two, num_agents_ts);
-    average_grad_norms_two.push_back(average_grad_norm_two);
+		// Also average gradient metrics
+		// Not really used except for step size right now
+		average_grad_rms_one = average_of_array(grad_rmss_one, num_agents_ts);
+		average_grad_norm_one = average_of_array(grad_norms_one, num_agents_ts);
+		average_grad_norms_one.push_back(average_grad_norm_one);
 
-    // For scoring, each agent needs to know how far it is and how far others are
-    // With respect to minima and with respect to the other swarm
-    for (a = 0; a < num_agents_ts; a++) {
-		if (num_dim % 3 == 0) {
-			differences_own_min_one[a] = root_mean_square_deviation(min_one, current_positions_one[a], num_dim);
-			differences_other_min_one[a] = root_mean_square_deviation(min_two, current_positions_one[a], num_dim);
-			differences_other_swarm_one[a] = root_mean_square_deviation(average_position_two, current_positions_one[a], num_dim);
+		average_grad_rms_two = average_of_array(grad_rmss_two, num_agents_ts);
+		average_grad_norm_two = average_of_array(grad_norms_two, num_agents_ts);
+		average_grad_norms_two.push_back(average_grad_norm_two);
+	}
 
-			differences_own_min_two[a] = root_mean_square_deviation(min_two, current_positions_two[a], num_dim);
-			differences_other_min_two[a] = root_mean_square_deviation(min_one, current_positions_two[a], num_dim);
-			differences_other_swarm_two[a] = root_mean_square_deviation(average_position_one, current_positions_two[a], num_dim);
+	// For scoring, each agent needs to know how far it is and how far others are
+	// With respect to minima and with respect to the other swarm
+	for (a = 0; a < num_agents_ts; a++) {
+		if (ownership[a] == thread_num) {
+			if (a >= num_agents_ts) {
+				agent_id = a % num_agents_ts;
+				if (num_dim % 3 == 0) {
+					differences_own_min_two[agent_id] = root_mean_square_deviation(min_two,
+					                                                               current_positions_two[agent_id],
+					                                                               num_dim);
+					differences_other_min_two[agent_id] = root_mean_square_deviation(min_one,
+					                                                                 current_positions_two[agent_id],
+					                                                                 num_dim);
+					differences_other_swarm_two[agent_id] = root_mean_square_deviation(average_position_one,
+					                                                                   current_positions_two[agent_id],
+					                                                                   num_dim);
 
-		} else {
-			differences_own_min_one[a] = sqrt(mean_square_displacement(min_one, current_positions_one[a], num_dim));
-			differences_other_min_one[a] = sqrt(mean_square_displacement(min_two, current_positions_one[a], num_dim));
-			differences_other_swarm_one[a] = sqrt(mean_square_displacement(average_position_two, current_positions_one[a], num_dim));
+				} else {
+					differences_own_min_two[agent_id] = sqrt(
+							mean_square_displacement(min_two, current_positions_two[agent_id], num_dim));
+					differences_other_min_two[agent_id] = sqrt(
+							mean_square_displacement(min_one, current_positions_two[agent_id], num_dim));
+					differences_other_swarm_two[agent_id] = sqrt(
+							mean_square_displacement(average_position_one, current_positions_two[agent_id], num_dim));
+				}
+			} else {
+				if (num_dim % 3 == 0) {
+					differences_own_min_one[a] = root_mean_square_deviation(min_one, current_positions_one[a], num_dim);
+					differences_other_min_one[a] = root_mean_square_deviation(min_two, current_positions_one[a],
+					                                                          num_dim);
+					differences_other_swarm_one[a] = root_mean_square_deviation(average_position_two,
+					                                                            current_positions_one[a], num_dim);
 
-			differences_own_min_two[a] = sqrt(mean_square_displacement(min_two, current_positions_two[a], num_dim));
-			differences_other_min_two[a] = sqrt(mean_square_displacement(min_one, current_positions_two[a], num_dim));
-			differences_other_swarm_two[a] = sqrt(mean_square_displacement(average_position_one, current_positions_two[a], num_dim));
+				} else {
+					differences_own_min_one[a] = sqrt(
+							mean_square_displacement(min_one, current_positions_one[a], num_dim));
+					differences_other_min_one[a] = sqrt(
+							mean_square_displacement(min_two, current_positions_one[a], num_dim));
+					differences_other_swarm_one[a] = sqrt(
+							mean_square_displacement(average_position_two, current_positions_one[a], num_dim));
+				}
+			}
 		}
 	}
 
-    // Gather scores
-    for (a = 0; a < num_agents_ts; a++) {
-        agents_one[a].update_score(grad_norms_one, differences_own_min_one, differences_other_min_one, differences_other_swarm_one);
-        scores_one[a] = agents_one[a].get_score();
+#pragma omp barrier
 
-        agents_two[a].update_score(grad_norms_two, differences_own_min_two, differences_other_min_two, differences_other_swarm_two);
-        scores_two[a] = agents_two[a].get_score();
-    }
+	// Gather scores
+	for (a = 0; a < num_agents_ts; a++) {
+		if (ownership[a] == thread_num) {
+			if (a >= num_agents_ts) {
+				agent_id = a % num_agents_ts;
+				agents_two[agent_id].update_score(grad_norms_two, differences_own_min_two, differences_other_min_two,
+				                                  differences_other_swarm_two);
+				scores_two[agent_id] = agents_two[agent_id].get_score();
+			} else {
+				agents_one[a].update_score(grad_norms_one, differences_own_min_one, differences_other_min_one,
+				                           differences_other_swarm_one);
+				scores_one[a] = agents_one[a].get_score();
+			}
+		}
+	}
 
-    // Define movement vectors for each agent
-    double* rando_one = new double[num_dim];
-    double* rando_two = new double[num_dim];
+#pragma omp barrier
 
-    for (a = 0; a < num_agents_ts; a++) {
-        //Define random vector
-        for (int d = 0; d < num_dim; d++){
-            rando_one[d] = rand_weighting(gen);
-            rando_two[d] = rand_weighting(gen);
-        }
+	// Define movement vectors for each agent
+	double *rando_one = new double[num_dim];
+	double *rando_two = new double[num_dim];
 
-        agents_one[a].update_velocity(scores_one, current_positions_one, average_position_one, average_position_two, rando_one, step_size);
-        hill_scores_one[a] = agents_one[a].get_hill_score();
+	for (a = 0; a < num_agents_ts; a++) {
+		if (ownership[a] == thread_num) {
+			if (a >= num_agents_ts) {
+				agent_id = a % num_agents_ts;
+				for (int d = 0; d < num_dim; d++) {
+					rando_two[d] = rand_weighting(gen);
+				}
 
-        agents_two[a].update_velocity(scores_two, current_positions_two, average_position_two, average_position_one, rando_two, step_size);
-        hill_scores_two[a] = agents_two[a].get_hill_score();
-    }
+				agent_id = agent_id % num_agents_ts;
+				agents_two[agent_id].update_velocity(scores_two, current_positions_two, average_position_two,
+				                                     average_position_one, rando_two, step_size);
+				hill_scores_two[agent_id] = agents_two[agent_id].get_hill_score();
+			} else {
+				for (int d = 0; d < num_dim; d++) {
+					rando_one[d] = rand_weighting(gen);
+				}
+
+				agents_one[agent_id].update_velocity(scores_one, current_positions_one, average_position_one,
+				                                     average_position_two, rando_one, step_size);
+				hill_scores_one[agent_id] = agents_one[agent_id].get_hill_score();
+			}
+		}
+	}
+#pragma omp barrier
 }
+
 
 void TransitionStateOptimizer::check_convergence(){
     bool swarms_close = false;
@@ -175,39 +229,48 @@ void TransitionStateOptimizer::run() {
     std::ofstream fsave;
     fsave.open(filename);
 
+    std::cout << omp_get_num_threads() << std::endl;
+
     while (!failed && !converged && step_num < num_steps_allowed) {
         std::cout << "TSOptimizer (optimize): STEP NUMBER " << step_num << std::endl;
+
         update();
-        check_convergence();
+		std::cout << "UPDATE FINISHED" << std::endl;
 
-        // Print to file output
-        if (step_num % save_freq == 0 && fsave.good()) {
-            static bool first = true;
+        if (omp_get_thread_num() == 0) {
+            check_convergence();
 
-            if (first) {
-                fsave << num_agents_ts * 2 << " ";
-                for (int d = 0; d < num_dim; d++) {
-                    fsave << pes->get_lower_bound(d) << " " << pes->get_upper_bound(d) << " ";
-                }
-                fsave << std::endl;
-                first = false;
-            }
+	        // Print to file output
 
-            for (int i = 0; i < num_agents_ts; ++i) {
-	            for (int d = 0; d < num_dim; d++) {
+	        if (step_num % save_freq == 0 && fsave.good()) {
+		    static bool first = true;
+
+		    if (first) {
+		        fsave << num_agents_ts * 2 << " ";
+		        for (int d = 0; d < num_dim; d++) {
+		            fsave << pes->get_lower_bound(d) << " " << pes->get_upper_bound(d) << " ";
+		        }
+		        fsave << std::endl;
+		        first = false;
+		    }
+
+		    for (int i = 0; i < num_agents_ts; ++i) {
+		        for (int d = 0; d < num_dim; d++) {
 		            fsave << current_positions_one[i][d] << " ";
-	            }
-	            fsave << std::endl;
-            }
+		        }
+		        fsave << std::endl;
+		    }
 
-            for (int i = 0; i < num_agents_ts; ++i) {
-	            for (int d = 0; d < num_dim; d++) {
+		    for (int i = 0; i < num_agents_ts; ++i) {
+		        for (int d = 0; d < num_dim; d++) {
 		            fsave << current_positions_two[i][d] << " ";
-	            }
-	            fsave << std::endl;
-            }
+		        }
+		        fsave << std::endl;
+		    }
+		}
+
+	        step_num++;
         }
-        step_num++;
     }
 
     if (converged) {
@@ -524,4 +587,56 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
 
     }
     std::cout << "TS_OPTIMIZER (constructor): finished velocity update for agents" << std::endl;
+
+    int max_num_threads = omp_get_max_threads();
+    int agents_per_thread = 1;
+    ownership = new int[num_agents_ts * 2];
+    if (max_num_threads > num_agents_ts * 2) {
+		omp_set_num_threads(num_agents_ts * 2);
+		threads = num_agents_ts * 2;
+		for (int i = 0; i < num_agents_ts * 2; i++) {
+			ownership[i] = i;
+		}
+    } else if (max_num_threads < num_agents_ts * 2) {
+    	agents_per_thread = (int) (num_agents_ts * 2) / max_num_threads;
+    	threads = max_num_threads;
+    	int remainder = (num_agents_ts * 2) % (agents_per_thread * max_num_threads);
+
+    	int point = 0;
+    	int this_thread = 0;
+    	for (int i = 0 ; i < num_agents_ts * 2; i++) {
+			if (point < remainder) {
+				if (this_thread < agents_per_thread + 1) {
+					ownership[i] = point;
+					this_thread++;
+				} else {
+					point += 1;
+					this_thread = 0;
+				}
+			} else {
+				if (this_thread < agents_per_thread) {
+					ownership[i] = point;
+					this_thread++;
+				} else {
+					point += 1;
+					this_thread = 0;
+				}
+			}
+    	}
+    } else {
+    	threads = num_agents_ts * 2;
+    	for (int i = 0; i < num_agents_ts * 2; i++) {
+			ownership[i] = i;
+		}
+    }
+
+    std::cout << "MAX NUM THREADS " << max_num_threads << std::endl;
+    std::cout << "NUM THREADS: " << omp_get_max_threads() << std::endl;
+    std::cout << "AGENTS PER THREAD: " << agents_per_thread << std::endl;
+    std::cout << "NUM AGENTS TS " << num_agents_ts << std::endl;
+    for (int i = 0; i < num_agents_ts * 2; i++) {
+		std::cout << ownership[i] << " ";
+    }
+    std::cout << std::endl;
+
 }
