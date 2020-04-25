@@ -8,44 +8,44 @@
 #include "../utils/xyz.h"
 #include "../molecules/molecule.h"
 
-void XTBAdapter::setup_calc(Molecule *mol, std::string suffix) {
-	write_molecule_to_xyz(mol, (input_name + suffix).c_str());
+void XTBAdapter::setup_calc(Molecule *mol, std::string prefix) {
+	write_molecule_to_xyz(mol, (prefix + input_name).c_str());
 }
 
-void XTBAdapter::call_single_point(Molecule *mol, double accuracy, std::string suffix) {
-	setup_calc(mol, suffix);
+void XTBAdapter::call_single_point(Molecule *mol, double accuracy, std::string prefix) {
+	setup_calc(mol, prefix);
 
-	std::string total_command = base_command + " " + input_name;
+	std::string total_command = base_command + " " + prefix + input_name;
 	total_command = total_command + " --sp " + "--acc " + std::to_string(accuracy);
 	total_command = total_command + " --chrg " + std::to_string(mol->get_charge());
 	total_command = total_command + " --uhf " + std::to_string(mol->get_spin());
-	total_command = total_command + " --namespace " + suffix;
+	total_command = total_command + " --namespace " + prefix;
 
 	if (num_threads > 1) {
 		total_command += " --parallel " + std::to_string(num_threads);
 	}
 
-	total_command += " > " + output_name + suffix;
+	total_command += " > " + prefix + output_name;
 
 	std::cout << total_command << std::endl;
 
 	system(total_command.c_str());
 }
 
-void XTBAdapter::call_gradient(Molecule *mol, double accuracy, std::string suffix) {
-	setup_calc(mol, suffix);
+void XTBAdapter::call_gradient(Molecule *mol, double accuracy, std::string prefix) {
+	setup_calc(mol, prefix);
 
-	std::string total_command = base_command + " " + input_name;
+	std::string total_command = base_command + " " + prefix + input_name;
 	total_command = total_command + " --grad " + "--acc " + std::to_string(accuracy);
 	total_command = total_command + " --chrg " + std::to_string(mol->get_charge());
 	total_command = total_command + " --uhf " + std::to_string(mol->get_spin());
-	total_command = total_command + " --namespace " + suffix;
+	total_command = total_command + " --namespace " + prefix;
 
 	if (num_threads > 1) {
 		total_command += " --parallel " + std::to_string(num_threads);
 	}
 
-	total_command += " > " + output_name + suffix;
+	total_command += " > " + prefix + output_name;
 
 	std::cout << total_command << std::endl;
 
@@ -58,8 +58,8 @@ void XTBAdapter::call_xtb(std::string arguments) {
 	system(total_command.c_str());
 }
 
-double XTBAdapter::parse_energy(std::string suffix) {
-	std::ifstream output_file ((output_name + suffix).c_str());
+double XTBAdapter::parse_energy(std::string prefix) {
+	std::ifstream output_file ((prefix + output_name).c_str());
 
 	std::string line;
 	std::smatch match;
@@ -76,12 +76,12 @@ double XTBAdapter::parse_energy(std::string suffix) {
 			}
 		}
 	} else {
-		std::cout << "COULD NOT OPEN FILE " << output_name + suffix << std::endl;
+		std::cout << "COULD NOT OPEN FILE " << prefix + output_name << std::endl;
 	}
 }
 
-double XTBAdapter::parse_grad_norm(std::string suffix) {
-	std::ifstream output_file((output_name + suffix).c_str());
+double XTBAdapter::parse_grad_norm(std::string prefix) {
+	std::ifstream output_file((prefix + output_name).c_str());
 
 	std::string line;
 	std::smatch match;
@@ -98,12 +98,12 @@ double XTBAdapter::parse_grad_norm(std::string suffix) {
 			}
 		}
 	} else {
-		std::cout << "COULD NOT OPEN FILE " << output_name + suffix << std::endl;
+		std::cout << "COULD NOT OPEN FILE " << prefix + output_name << std::endl;
 	}
 }
 
-double* XTBAdapter::parse_gradient(std::string suffix) {
-	std::string filename = suffix + ".gradient";
+double* XTBAdapter::parse_gradient(std::string prefix) {
+	std::string filename = prefix + ".gradient";
 
 	std::ifstream output_file(filename);
 
