@@ -21,9 +21,9 @@ void TransitionStateOptimizer::update() {
 	int history_depth = 0;
 	int thread_num = 0;
 
-	#ifdef USE_OMP
+#ifdef USE_OMP
 	thread_num = omp_get_thread_num();
-	#endif
+#endif
 
 	// Update hill score - indicate if swarms are moving uphill or downhill
 
@@ -240,7 +240,6 @@ void TransitionStateOptimizer::run() {
     std::ofstream fsave;
     fsave.open(filename);
 
-    std::cout << "TransitionStateOptimizer (run): " << omp_get_num_threads() << " threads" << std::endl;
 
 #pragma omp parallel
     {
@@ -248,6 +247,9 @@ void TransitionStateOptimizer::run() {
 #ifdef USE_OMP
 		thread_num = omp_get_thread_num();
 #endif
+		if (thread_num == 0) {
+			std::cout << "TransitionStateOptimizer (run): " << omp_get_num_threads() << " threads" << std::endl;
+		}
 	    while (!failed && !converged && step_num < num_steps_allowed) {
 	    	if (thread_num == 0) {
 	    	    std::cout << "TSOptimizer (optimize): STEP NUMBER " << step_num << std::endl;
@@ -608,9 +610,16 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
     }
     std::cout << "TS_OPTIMIZER (constructor): finished velocity update for agents" << std::endl;
 
+    ownership = new int[num_agents_ts * 2];
+    for (int a = 0; a < num_agents_ts * 2; a++) {
+    	ownership[a] = 0;
+    }
+
+#ifdef USE_OMP
+    omp_set_dynamic(0);
+	omp_set_num_threads(num_threads);
     int max_num_threads = omp_get_max_threads();
     int agents_per_thread = 1;
-    ownership = new int[num_agents_ts * 2];
     if (max_num_threads > num_agents_ts * 2) {
 		omp_set_num_threads(num_agents_ts * 2);
 		std::cout << "TS_OPTIMIZER (constructor): number of threads set to " << omp_get_max_threads() << std::endl;
@@ -659,5 +668,5 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
 		std::cout << ownership[i] << " ";
     }
     std::cout << std::endl;
-
+#endif
 }
