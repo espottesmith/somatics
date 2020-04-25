@@ -51,7 +51,7 @@ int* delaunay(std::vector<double*> minima_array) {
 
 
 	printf( "\n========\ncompute %d-d Delaunay triangulation\n", num_dim);
-	sprintf(flags, "qhull s d Tcv");
+	sprintf(flags, "qhull s d Qz Tcv");
 	for (i=numpoints; i--; )
 		rows[i]= points + num_dim * i;
 	qh_printmatrix(qh, outfile, "input", rows, numpoints, num_dim);
