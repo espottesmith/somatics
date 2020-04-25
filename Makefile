@@ -5,7 +5,7 @@ USE_MPI           = FALSE
 USE_OMP           = FALSE
 USE_MIN_FINDER    = TRUE
 USE_TS_FINDER     = TRUE
-USE_QHULL         = FALSE
+USE_QHULL         = TRUE
 USE_MOLECULE      = TRUE
 
 ifeq ($(USE_MPI), TRUE)
