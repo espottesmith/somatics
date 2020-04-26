@@ -113,8 +113,10 @@ int main(int argc, char** argv) {
 #endif
 
 		XTBAdapter adapter = XTBAdapter("xtb", "input.xyz", "xtb.out", num_threads_xtb);
-		lb = get_lower_bounds(mol);
-		ub = get_upper_bounds(mol);
+		lb = new double[2];
+		ub = new double[2];
+		lb[0] = -0.5; lb[1] = -0.5;
+		ub[0] = 2.5; ub[1] = 2.5;
 		xtbsurf = XTBSurface(mol, adapter, 0.2, lb, ub);
 		pes = &xtbsurf;
 
@@ -126,7 +128,7 @@ int main(int argc, char** argv) {
 		lb = new double[2];
 		up = new double[2];
 
-	if (surface == "Muller_Brown") {
+		if (surface == "Muller_Brown") {
 	        lb[0] = -1.25; lb[1] = -1.50;
 			ub[0] =  1.25; ub[1] =  1.75;
 			mbsurf = Muller_Brown(lb, ub);
