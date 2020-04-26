@@ -25,7 +25,7 @@ using namespace std;
 ////////////////////////////////
 // Random numbers
 std::random_device rd;
-std::mt19937 gen(1);
+std::mt19937 gen(rd());
 std::uniform_real_distribution<float> rand_vel_weighting (0.0, 1.0);
 ////////////////////////////////
 
