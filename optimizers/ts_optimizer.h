@@ -62,6 +62,7 @@ private:
     int step_num;
     bool converged;
     bool failed;
+    bool first;
 
 public:
 

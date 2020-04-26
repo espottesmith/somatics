@@ -182,8 +182,6 @@ void TransitionStateOptimizer::run() {
 
         // Print to file output
         if (step_num % save_freq == 0 && fsave.good()) {
-            static bool first = true;
-
             if (first) {
                 fsave << num_agents_ts * 2 << " ";
                 for (int d = 0; d < num_dim; d++) {
@@ -409,6 +407,7 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
 
     failed = false;
     converged = false;
+    first = true;
 
     double upper_bound, lower_bound;
 

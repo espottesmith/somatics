@@ -1,6 +1,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstring>
+#include <string.h>
 #include <fstream>
 #include <iostream>
 #include <random>
@@ -230,7 +231,9 @@ int main(int argc, char** argv) {
 	for (int i = 0; i < num_min; i++) {
   	    for (int j = 0; j < i; j++) {
   	    	if (outpairs[i * num_min + j] == 1) {
-  	    		TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes, minima[i], minima[j], savefreq, "ts.txt");
+  	    		std::string filestring = "ts" + std::to_string(i) + "_" + std::to_string(j) + ".txt";
+                char* filename = strdup(filestring.c_str());
+  	    		TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes, minima[i], minima[j], savefreq, filename);
   	    		ts_opt.run();
   	    		double* ts = ts_opt.find_ts();
   	    		for (int d = 0; d < num_dim; d++) {
