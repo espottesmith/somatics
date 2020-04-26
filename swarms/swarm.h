@@ -141,7 +141,6 @@ class MinimaAgent {
     for (int d = 0; d < num_dim; d++) {
       r_cog = rand_vel_weighting(gen);
       r_soc = rand_vel_weighting(gen);
-
       v_cog = cognit*r_cog*(base.pos_best[d] - base.pos[d]);
       v_soc = social*r_soc*(pos_best_global[d] - base.pos[d]);
       base.vel[d] = inertia*base.vel[d] + v_cog + v_soc;
@@ -260,7 +259,6 @@ class MinimaSwarm {
 
   void update_fitnesses (double& fitness_best_global, std::vector<double> &pos_best_global) {
 #ifdef USE_OMP
-    omp_set_num_threads(64);
 #pragma omp parallel default(shared)
     {
     #pragma omp for
@@ -290,7 +288,6 @@ class MinimaSwarm {
     double fitness_best_global_old = fitness_best_global;
 
 #ifdef USE_OMP
-    omp_set_num_threads(64);
 #pragma omp parallel default(shared)
     {
     #pragma omp for
@@ -337,7 +334,6 @@ class MinimaSwarm {
 
   void update_velocities (std::vector< double > pos_best_global) {
 #ifdef USE_OMP
-    omp_set_num_threads(64);
 #pragma omp parallel default(shared)
     {
     #pragma omp for
@@ -353,7 +349,6 @@ class MinimaSwarm {
 
   void update_velocities_gcpso (std::vector< double > pos_best_global) {
 #ifdef USE_OMP
-    omp_set_num_threads(64);
 #pragma omp parallel default(shared)
     {
     #pragma omp for
@@ -373,7 +368,6 @@ class MinimaSwarm {
 
   void move_swarm () {
 #ifdef USE_OMP
-    omp_set_num_threads(64);
 #pragma omp parallel default(shared)
     {
     #pragma omp for
@@ -462,7 +456,7 @@ class MinimaNicheSwarm : public MinimaSwarm {
 
   void evolve_subswarms () {
 
-    printf ("number of subswarms = %i \n", num_subswarm);
+   // printf ("number of subswarms = %i \n", num_subswarm);
 
     /* printf ("length check: %i %i %i %i \n", subswarms.size(), fitness_best_globals.size(), pos_best_globals.size(), swarm_rsq.size() ); */
 
@@ -533,7 +527,7 @@ class MinimaNicheSwarm : public MinimaSwarm {
 	    num_min_agent_combine <= max_subswarm_size) {
 
 	  /* printf("R sum = %f \n", swarm_rsq[p] + swarm_rsq[q]); */
-	  printf("merging subswarms %i & %i \n", p, q);
+	  //printf("merging subswarms %i & %i \n", p, q);
 
 	  /* for (int i = 0; i < subswarms[p].num_min_agent; i++) { */
 	  /*   for (int d=0; d<num_dim; d++) { subswarms[p].agents[i].base.vel[d] = 0.0; } */
@@ -615,7 +609,7 @@ class MinimaNicheSwarm : public MinimaSwarm {
 	if (dist_sq < swarm_rsq[q] && !joined[p]) {
 
 	  /* printf("distance^2 = %f, radius^2 = %f \n", dist_sq, swarm_rsq[q]); */
-	  printf("adding agent %i to subswarm %i \n", p, q);
+	  //printf("adding agent %i to subswarm %i \n", p, q);
 
 	  /* for (int d=0; d<num_dim; d++) { agents[p].base.vel[d] = 0.0; } */
 	  /* for (int i=0; i<subswarms[q].num_min_agent; i++) { */
@@ -849,7 +843,7 @@ class MinimaNicheSwarm : public MinimaSwarm {
     for (int i = 0; i < idx_for_forming.size(); i++) {
       if (ready_to_form[i] == true) {
 	
-	printf("forming new subswarm \n");
+	//printf("forming new subswarm \n");
 	
 	int p = idx_for_forming[i];
 	double min_dist_sq = compute_dist_sq ( agents[p].base.pos,
