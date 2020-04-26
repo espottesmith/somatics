@@ -7,7 +7,7 @@
 #include "../utils/math.h"
 
 double* get_lower_bounds(Molecule mol) {
-	int dimension = mol.get_num_atoms() * 3;
+	int dimension = 2;
 	int num_atoms = mol.get_num_atoms();
 	double* pairwise_distances = mol.get_pairwise_distances();
 	double* start = mol.get_coords();
@@ -24,7 +24,7 @@ double* get_lower_bounds(Molecule mol) {
 		}
 	}
 
-	double movement = min_dist / (4 * sqrt(3));
+	double movement = min_dist / (4 * sqrt(2));
 
 	for (int d = 0; d < dimension; d++) {
 		result[d] = start[d] - movement;
@@ -34,7 +34,7 @@ double* get_lower_bounds(Molecule mol) {
 }
 
 double* get_upper_bounds(Molecule mol) {
-	int dimension = mol.get_num_atoms() * 3;
+	int dimension = 2;
 	int num_atoms = mol.get_num_atoms();
 	double* pairwise_distances = mol.get_pairwise_distances();
 	double* start = mol.get_coords();
@@ -51,7 +51,7 @@ double* get_upper_bounds(Molecule mol) {
 		}
 	}
 
-	double movement = min_dist / (4 * sqrt(3));
+	double movement = min_dist / (4 * sqrt(2));
 
 	for (int d = 0; d < dimension; d++) {
 		result[d] = start[d] + movement;
@@ -63,7 +63,12 @@ double* get_upper_bounds(Molecule mol) {
 double XTBSurface::calculate_energy(double *position, std::string name_space) {
 	Molecule this_mol = molecule;
 
-	this_mol.set_coords(position);
+	double* pos = new double[3];
+	pos[0] = position[0];
+	pos[1] = position[1];
+	pos[2] = 0.0;
+
+	this_mol.set_first_atom(pos);
 
 	adapter.call_single_point(&this_mol, accuracy, name_space);
 	double energy = adapter.parse_energy(name_space);

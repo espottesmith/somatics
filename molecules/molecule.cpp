@@ -60,6 +60,12 @@ double* Molecule::get_pairwise_distances() {
 
 }
 
+void Molecule::set_first_atom(double *coords_in) {
+	coords[0] = coords_in[0];
+	coords[1] = coords_in[1];
+	coords[2] = coords_in[2];
+}
+
 void Molecule::set_charge(int charge_in) {
 	charge = charge_in;
 

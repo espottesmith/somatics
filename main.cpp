@@ -99,7 +99,7 @@ int main(int argc, char** argv) {
 		mol = xyz_to_molecule(molfile);
 		std::cout << "Made molecule" << std::endl;
 
-		num_dim = mol.get_num_atoms() * 3;
+		num_dim = 2;
 
 		int num_threads_xtb = 1;
 

@@ -35,6 +35,7 @@ public:
 	double* get_pairwise_distances();
 
 	// Setters
+	void set_first_atom(double* coords_in);
 	void set_coords(double* coords_in) { coords = coords_in; }
 	void set_charge(int charge_in);
 
