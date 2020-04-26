@@ -1,11 +1,11 @@
 .PHONY: execute clean
 
-ON_CORI           = FALSE
+ON_CORI           = TRUE
 USE_MPI           = FALSE
 USE_OMP           = TRUE
 USE_MIN_FINDER    = TRUE
 USE_TS_FINDER     = TRUE
-USE_QHULL         = FALSE
+USE_QHULL         = TRUE
 USE_MOLECULE      = TRUE
 
 ifeq ($(USE_MPI), TRUE)

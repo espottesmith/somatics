@@ -18,13 +18,13 @@ public:
 	void set_output_name(std::string output_name_in) { output_name = output_name_in; }
 	void set_num_threads(int num_threads_in) { num_threads = num_threads_in; }
 
-	void setup_calc(Molecule* mol, std::string suffix);
-	void call_single_point(Molecule* mol, double accuracy, std::string suffix);
-	void call_gradient(Molecule* mol, double accuracy, std::string suffix);
+	void setup_calc(Molecule* mol, std::string prefix);
+	void call_single_point(Molecule* mol, double accuracy, std::string prefix);
+	void call_gradient(Molecule* mol, double accuracy, std::string prefix);
 	void call_xtb(std::string arguments);
-	double parse_energy(std::string suffix);
-	double parse_grad_norm(std::string suffix);
-	double* parse_gradient(std::string suffix);
+	double parse_energy(std::string prefix);
+	double parse_grad_norm(std::string prefix);
+	double* parse_gradient(std::string prefix);
 
 	XTBAdapter(std::string base_command_in, std::string input_name_in, std::string output_name_in,
 			int num_threads_in);

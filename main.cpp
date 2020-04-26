@@ -44,6 +44,7 @@
 int num_agents_min;
 int num_agents_ts;
 int num_dim;
+int num_threads;
 
 int main(int argc, char** argv) {
 	// Parse Args
@@ -67,9 +68,12 @@ int main(int argc, char** argv) {
 	num_agents_min = find_int_arg(argc, argv, "-nmin", 1000);
 	num_agents_ts = find_int_arg(argc, argv, "-nts", 8);
 
-	int num_threads = find_int_arg(argc, argv, "-nthreads", 1);
+	num_threads = find_int_arg(argc, argv, "-nthreads", 1);
 #ifdef USE_OMP
+	omp_set_dynamic(0);
 	omp_set_num_threads(num_threads);
+	std::cout << "MAIN: NUMBER OF THREADS " << omp_get_num_threads() << std::endl;
+	std::cout << "MAIN: MAX NUMBER OF THREADS " << omp_get_max_threads() << std::endl;
 #endif //USE_OMP
 
 	double min_find_tol = 1.0 * pow(10, -1.0 * find_int_arg(argc, argv, "-mtol", 8));
@@ -115,7 +119,7 @@ int main(int argc, char** argv) {
 		}
 #endif //USE_OMP
 
-		XTBAdapter adapter = XTBAdapter("xtb", "input.xyz.", "xtb.out.", num_threads_xtb);
+		XTBAdapter adapter = XTBAdapter("xtb", "input.xyz", "xtb.out", num_threads_xtb);
 		double* lb = get_lower_bounds(mol, 1.0);
 		double* ub = get_upper_bounds(mol, 1.0);
 		xtbsurf = XTBSurface(mol, adapter, 0.2, lb, ub);
@@ -124,6 +128,8 @@ int main(int argc, char** argv) {
 
 	} else if (surf_name != nullptr) {
 		num_dim = 2;
+
+		std::string surface(surf_name);
 
 		if (surface == "Muller_Brown") {
 			double lb[2] = {-1.25, -1.5};
@@ -135,7 +141,7 @@ int main(int argc, char** argv) {
 			double ub[2] = {4.0, 4.0};
 			hlsurf = Halgren_Lipscomb(lb, ub);
 			pes = &hlsurf;
-		} else if (surface == "Cerjan_Milller") {
+		} else if (surface == "Cerjan_Miller") {
 			double lb[2] = {-2.5, -1.5};
 			double ub[2] = {2.5, 1.5};
 			cmsurf = Cerjan_Miller(lb, ub);
@@ -228,8 +234,6 @@ int main(int argc, char** argv) {
 
 	int* outpairs = delaunay(minima);
 	int num_min = minima.size();
-
-	omp_set_dynamic(0);
 
 	for (int i = 0; i < num_min; i++) {
   	    for (int j = 0; j < i; j++) {
