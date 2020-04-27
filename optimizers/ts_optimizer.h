@@ -67,6 +67,8 @@ private:
 
 public:
 
+	bool all_converged;
+
     void update();
     bool check_convergence();
     void run();

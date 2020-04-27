@@ -235,13 +235,22 @@ int main(int argc, char** argv) {
 	for (int i = 0; i < num_min; i++) {
   	    for (int j = 0; j < i; j++) {
   	    	if (outpairs[i * num_min + j] == 1) {
-  	    		TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes, minima[i], minima[j], savefreq, "ts.txt");
-  	    		ts_opt.run();
-  	    		double* ts = ts_opt.find_ts();
-  	    		for (int d = 0; d < num_dim; d++) {
-  	    			std::cout << ts[d] << " ";
+  	    		for (int k = 0; k < 5; k++) {
+                    TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes,
+                    		minima[i], minima[j], savefreq, "ts.txt");
+                    auto t_start_ts_find = std::chrono::steady_clock::now();
+	                ts_opt.run();
+	                auto t_end_ts_find = std::chrono::steady_clock::now();
+	                std::cout << i << " " << j << " " << k << ": " << (t_end_ts_find - t_start_ts_find) << std::endl;
+	                if (ts_opt.all_converged) {
+	                    double* ts = ts_opt.find_ts();
+		                for (int d = 0; d < num_dim; d++) {
+		                    std::cout << ts[d] << " ";
+		                }
+		                std::cout << std::endl;
+		                break;
+	                }
   	    		}
-  	    		std::cout << std::endl;
   	    	}
   	    }
 	}

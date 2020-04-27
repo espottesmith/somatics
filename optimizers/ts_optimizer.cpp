@@ -238,7 +238,7 @@ void TransitionStateOptimizer::run() {
     std::ofstream fsave;
     fsave.open(filename);
 
-	bool all_converged = false;
+	all_converged = false;
 
 #pragma omp parallel
     {
@@ -251,8 +251,8 @@ void TransitionStateOptimizer::run() {
 	    		s = num_steps_allowed;
 	    	}
 
-#pragma omp master
-            std::cout << "TSOptimizer (run): STEP NUMBER " << step_num << std::endl;
+// #pragma omp master
+//             std::cout << "TSOptimizer (run): STEP NUMBER " << step_num << std::endl;
 
 	        update();
 #pragma omp barrier
@@ -325,7 +325,7 @@ double* TransitionStateOptimizer::find_ts() {
 	int starting_step_two = 0;
 
 	if (step_num < 6) {
-		std::cout << "WARNING: TOO FEW STEPS FOR ADEQUATE ANALYSIS" << std::endl;
+		// std::cout << "WARNING: TOO FEW STEPS FOR ADEQUATE ANALYSIS" << std::endl;
 		// Will almost definitely cause a segfault
 	} else {
 		// Average over 5 steps
@@ -353,8 +353,8 @@ double* TransitionStateOptimizer::find_ts() {
 	}
 
 	// Now, for each range of 5 steps chosen, choose the best step
-	std::cout << "STARTING STEP CHOSEN (one): " << starting_step_one << std::endl;
-	std::cout << "STARTING STEP CHOSEN (two): " << starting_step_two << std::endl;
+	// std::cout << "STARTING STEP CHOSEN (one): " << starting_step_one << std::endl;
+	// std::cout << "STARTING STEP CHOSEN (two): " << starting_step_two << std::endl;
 	double* all_hill_scores_one = new double[num_agents_ts];
 	double* all_hill_scores_two = new double[num_agents_ts];
 	double step_hill_score_one, step_hill_score_two;
@@ -392,8 +392,8 @@ double* TransitionStateOptimizer::find_ts() {
 		}
 	}
 
-	std::cout << "CHOSEN STEP (one): " << chosen_step_one << std::endl;
-	std::cout << "CHOSEN STEP (two): " << chosen_step_two << std::endl;
+	// std::cout << "CHOSEN STEP (one): " << chosen_step_one << std::endl;
+	// std::cout << "CHOSEN STEP (two): " << chosen_step_two << std::endl;
 
 	// And then choose the best agent from that step
 	int agent_id_one, agent_id_two;
@@ -417,29 +417,29 @@ double* TransitionStateOptimizer::find_ts() {
 		}
 	}
 
-	std::cout << "SWARM ONE CHOSEN AGENT" << std::endl;
-	for (int d = 0; d < num_dim; d++) {
-		std::cout << agents_one[agent_id_one].history_position[chosen_step_one][d] << " ";
-	}
-	std::cout << std::endl;
-	std::cout << "SWARM TWO CHOSEN AGENT" << std::endl;
-	for (int d = 0; d < num_dim; d++) {
-		std::cout << agents_two[agent_id_two].history_position[chosen_step_two][d] << " ";
-	}
-	std::cout << std::endl;
+	// std::cout << "SWARM ONE CHOSEN AGENT" << std::endl;
+	// for (int d = 0; d < num_dim; d++) {
+	// 	std::cout << agents_one[agent_id_one].history_position[chosen_step_one][d] << " ";
+	// }
+	// std::cout << std::endl;
+	// std::cout << "SWARM TWO CHOSEN AGENT" << std::endl;
+	// for (int d = 0; d < num_dim; d++) {
+	// 	std::cout << agents_two[agent_id_two].history_position[chosen_step_two][d] << " ";
+	// }
+	// std::cout << std::endl;
 
 	// Each swarm has now chosen its agent and its step
 	// Pick the better of the two based on gradient norm
 	// Could also look at stdev or variance among the hill scores
 	if (average_grad_norms_one[chosen_step_one] < average_grad_norms_two[chosen_step_two]) {
 		// Use the first swarm
-		std::cout << "USING SWARM ONE" << std::endl;
-		std::cout << "CHOSEN AGENT: " << agent_id_one << std::endl;
+		// std::cout << "USING SWARM ONE" << std::endl;
+		// std::cout << "CHOSEN AGENT: " << agent_id_one << std::endl;
 		return agents_one[agent_id_one].history_position[chosen_step_one];
 	} else {
 		// Use the second swarm
-		std::cout << "USING SWARM TWO" << std::endl;
-		std::cout << "CHOSEN AGENT: " << agent_id_one << std::endl;
+		// std::cout << "USING SWARM TWO" << std::endl;
+		// std::cout << "CHOSEN AGENT: " << agent_id_one << std::endl;
 		return agents_two[agent_id_two].history_position[chosen_step_two];
 	}
 
@@ -492,13 +492,13 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
     save_freq = save_freq_in;
     filename = filename_in;
 
+    all_converged = false;
+
     double upper_bound, lower_bound;
 
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<double> rand_weighting (0.0, 1.0);
-
-    std::cout << "TS_OPTIMIZER (constructor): beginning to define agents" << std::endl;
 
     int a;
 
@@ -529,7 +529,6 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
         name = std::to_string(a) + "_two";
         agents_two.push_back(TransitionStateAgent(a, name, pos, min_two, min_one));
     }
-    std::cout << "TS_OPTIMIZER (constructor): finished defining agents" << std::endl;
 
     // Average position of swarms; used for scoring swarms
     average_position_one = vector_average(current_positions_one, num_dim);
@@ -549,7 +548,6 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
         grad_rmss_two[a] = agents_two[a].get_grad_rms();
         grad_norms_two[a] = agents_two[a].get_grad_norm();
     }
-    std::cout << "TS_OPTIMIZER (constructor): finished defining agent energies and gradients" << std::endl;
 
     average_grad_rms_one = average_of_array(grad_rmss_one, num_agents_ts);
     average_grad_norm_one = average_of_array(grad_norms_one, num_agents_ts);
@@ -587,7 +585,6 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
         scores_one[a] = agents_one[a].get_score();
         scores_two[a] = agents_two[a].get_score();
     }
-    std::cout << "TS_OPTIMIZER (constructor): finished defining agent scores" << std::endl;
 
     // Define movement vectors for each agent
     double* rando_one = new double[num_dim];
@@ -605,7 +602,6 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
         hill_scores_two[a] = agents_two[a].get_hill_score();
 
     }
-    std::cout << "TS_OPTIMIZER (constructor): finished velocity update for agents" << std::endl;
 
     ownership = new int[num_agents_ts * 2];
     for (int a = 0; a < num_agents_ts * 2; a++) {
@@ -618,7 +614,6 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
     int agents_per_thread = 1;
     if (max_num_threads > num_agents_ts * 2) {
 		omp_set_num_threads(num_agents_ts * 2);
-		std::cout << "TS_OPTIMIZER (constructor): number of threads set to " << omp_get_max_threads() << std::endl;
 		threads = num_agents_ts * 2;
 		for (int i = 0; i < num_agents_ts * 2; i++) {
 			ownership[i] = i;
@@ -656,12 +651,12 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
 		}
     }
 
-    std::cout << "MAX NUM THREADS " << max_num_threads << std::endl;
-    std::cout << "NUM THREADS: " << omp_get_max_threads() << std::endl;
-    std::cout << "AGENTS PER THREAD: " << agents_per_thread << std::endl;
-    std::cout << "NUM AGENTS TS " << num_agents_ts << std::endl;
-    for (int i = 0; i < num_agents_ts * 2; i++) {
-		std::cout << ownership[i] << " ";
-    }
-    std::cout << std::endl;
+    // std::cout << "MAX NUM THREADS " << max_num_threads << std::endl;
+    // std::cout << "NUM THREADS: " << omp_get_max_threads() << std::endl;
+    // std::cout << "AGENTS PER THREAD: " << agents_per_thread << std::endl;
+    // std::cout << "NUM AGENTS TS " << num_agents_ts << std::endl;
+    // for (int i = 0; i < num_agents_ts * 2; i++) {
+	// 	std::cout << ownership[i] << " ";
+    // }
+    // std::cout << std::endl;
 }
