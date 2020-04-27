@@ -8,13 +8,10 @@
 #include <stdio.h>
 #include <iostream>
 #include <functional>
+#include <omp.h>
 
 #ifdef USE_MPI
 #include <mpi.h>
-#endif
-
-#ifdef USE_OMP
-#include <omp.h>
 #endif
 
 #include "../common.h"
@@ -141,7 +138,6 @@ class MinimaAgent {
     for (int d = 0; d < num_dim; d++) {
       r_cog = rand_vel_weighting(gen);
       r_soc = rand_vel_weighting(gen);
-
       v_cog = cognit*r_cog*(base.pos_best[d] - base.pos[d]);
       v_soc = social*r_soc*(pos_best_global[d] - base.pos[d]);
       base.vel[d] = inertia*base.vel[d] + v_cog + v_soc;
@@ -259,15 +255,15 @@ class MinimaSwarm {
   MinimaSwarm () {}
 
   void update_fitnesses (double& fitness_best_global, std::vector<double> &pos_best_global) {
-#ifdef USE_OMP
-    //TODO: REPLACE
-    // int tid =omp_get_num_threads();
-    int tid = 0;
-#endif
+#pragma omp parallel default(shared)
+    {
+    #pragma omp for
     for (int p = 0; p < num_min_agent; p++) {
-
       agents[p].fitness_calc(pot_energy_surf);
-            
+    }
+    }
+
+    for (int p = 0; p < num_min_agent; p++) {
       if ( agents[p].base.fitness < fitness_best_global ||  fitness_best_global == -1.0 ) {
 	index_best = p;
 	for (int d=0; d<num_dim; d++) {
@@ -284,10 +280,15 @@ class MinimaSwarm {
 
     double fitness_best_global_old = fitness_best_global;
 
-    for (int p=0; p<num_min_agent; p++) {
-
+#pragma omp parallel default(shared)
+    {
+    #pragma omp for
+    for (int p = 0; p < num_min_agent; p++) {
       agents[p].fitness_calc(pot_energy_surf);
+    }
+    }
 
+    for (int p=0; p<num_min_agent; p++) {
       if ( agents[p].base.fitness < fitness_best_global ||  fitness_best_global == -1.0 ) {
 	index_best = p;
 	for (int d=0; d<num_dim; d++) {
@@ -321,31 +322,38 @@ class MinimaSwarm {
   }
 
   void update_velocities (std::vector< double > pos_best_global) {
-
-    for (int p=0; p<num_min_agent; p++) {
+#pragma omp parallel default(shared)
+    {
+    #pragma omp for
+    for (int p = 0; p < num_min_agent; p++) {
       agents[p].update_velocity(pos_best_global);
+    }
     }
 
   }
 
   void update_velocities_gcpso (std::vector< double > pos_best_global) {
-
-    agents[index_best].update_velocity_best(pos_best_global, rho);
-
-    for (int p=0; p<index_best; p++) {
-      agents[p].update_velocity(pos_best_global);
+#pragma omp parallel default(shared)
+    {
+    #pragma omp for
+    for (int p = 0; p < num_min_agent; p++) {
+      if (p == index_best) {
+        agents[index_best].update_velocity_best(pos_best_global, rho);
+      }
+      else {
+	agents[p].update_velocity(pos_best_global);
+      }
     }
-
-    for (int p=index_best+1; p<num_min_agent; p++) {
-      agents[p].update_velocity(pos_best_global);
     }
-
   }
 
   void move_swarm () {
-
-    for (int p=0; p<num_min_agent; p++) {
+#pragma omp parallel default(shared)
+    {
+    #pragma omp for
+    for (int p = 0; p < num_min_agent; p++) {
       agents[p].update_position(region);
+    }
     }
 
   }
@@ -425,7 +433,7 @@ class MinimaNicheSwarm : public MinimaSwarm {
 
   void evolve_subswarms () {
 
-    printf ("number of subswarms = %i \n", num_subswarm);
+   // printf ("number of subswarms = %i \n", num_subswarm);
 
     /* printf ("length check: %i %i %i %i \n", subswarms.size(), fitness_best_globals.size(), pos_best_globals.size(), swarm_rsq.size() ); */
 
@@ -496,7 +504,7 @@ class MinimaNicheSwarm : public MinimaSwarm {
 	    num_min_agent_combine <= max_subswarm_size) {
 
 	  /* printf("R sum = %f \n", swarm_rsq[p] + swarm_rsq[q]); */
-	  printf("merging subswarms %i & %i \n", p, q);
+	  //printf("merging subswarms %i & %i \n", p, q);
 
 	  /* for (int i = 0; i < subswarms[p].num_min_agent; i++) { */
 	  /*   for (int d=0; d<num_dim; d++) { subswarms[p].agents[i].base.vel[d] = 0.0; } */
@@ -578,7 +586,7 @@ class MinimaNicheSwarm : public MinimaSwarm {
 	if (dist_sq < swarm_rsq[q] && !joined[p]) {
 
 	  /* printf("distance^2 = %f, radius^2 = %f \n", dist_sq, swarm_rsq[q]); */
-	  printf("adding agent %i to subswarm %i \n", p, q);
+	  //printf("adding agent %i to subswarm %i \n", p, q);
 
 	  /* for (int d=0; d<num_dim; d++) { agents[p].base.vel[d] = 0.0; } */
 	  /* for (int i=0; i<subswarms[q].num_min_agent; i++) { */
@@ -812,7 +820,7 @@ class MinimaNicheSwarm : public MinimaSwarm {
     for (int i = 0; i < idx_for_forming.size(); i++) {
       if (ready_to_form[i] == true) {
 	
-	printf("forming new subswarm \n");
+	//printf("forming new subswarm \n");
 	
 	int p = idx_for_forming[i];
 	double min_dist_sq = compute_dist_sq ( agents[p].base.pos,

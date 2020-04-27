@@ -2,11 +2,7 @@
 
 ON_CORI           = TRUE
 USE_MPI           = FALSE
-USE_OMP           = FALSE
-USE_MIN_FINDER    = TRUE
-USE_TS_FINDER     = TRUE
-USE_QHULL         = TRUE
-USE_MOLECULE      = TRUE
+USE_MOLECULE      = FALSE
 
 ifeq ($(USE_MPI), TRUE)
 CXX = mpic++
@@ -24,39 +20,26 @@ CFLAGS += -I$(MPIDIR)
 endif
 endif
 
-ifeq ($(USE_QHULL), TRUE)
 ifeq ($(ON_CORI), TRUE)
 QHULLDIR=/global/homes/c/cmcc/.local
 CFLAGS += -I$(QHULLDIR)/include
-endif
 endif
 
 DEPS = main.cpp common.h utils/math.h pes/pes.h pes/test_surfaces.h
 OBJS = main.o math.o test_surfaces.o common.o
 EXTERN = 
 
-ifeq ($(USE_MIN_FINDER), TRUE)
 DEPS += swarms/swarm.h optimizers/optimizer.h
-DEFINES	+= -DUSE_MIN_FINDER=$(USE_MIN_FINDER)
-endif
 
-ifeq ($(USE_TS_FINDER), TRUE)
 DEPS += optimizers/ts_optimizer.h
 OBJS += ts_agent.o ts_optimizer.o
-DEFINES	+= -DUSE_TS_FINDER=$(USE_TS_FINDER)
-endif
 
-ifeq ($(USE_OMP), TRUE)
 EXTERN += -fopenmp
-DEFINES += -DUSE_OMP=$(USE_OMP)
-endif
+CFLAGS += -fopenmp
 
-ifeq ($(USE_QHULL), TRUE)
 DEPS += voronoi/voronoi.h 
 OBJS += voronoi.o
 EXTERN += -L$(QHULLDIR)/lib -lqhullcpp -lqhull_r
-DEFINES	+= -DUSE_QHULL=$(USE_QHULL)
-endif
 
 ifeq ($(USE_MOLECULE), TRUE)
 DEPS += molecules/molecule.h utils/xyz.h adapters/xtb_adapter.h pes/xtb_surface.h
@@ -83,7 +66,6 @@ test_surfaces.o: pes/pes.h pes/test_surfaces.h pes/test_surfaces.cpp
 	@echo "Creating test surfaces object..."
 	${CXX} ${CFLAGS} -c pes/test_surfaces.cpp
 
-ifeq ($(USE_TS_FINDER), TRUE)
 ts_agent.o: pes/pes.h utils/math.h agents/ts_agent.h agents/ts_agent.cpp
 	@echo "Creating TS agent object..."
 	${CXX} ${CFLAGS} -c agents/ts_agent.cpp
@@ -91,9 +73,7 @@ ts_agent.o: pes/pes.h utils/math.h agents/ts_agent.h agents/ts_agent.cpp
 ts_optimizer.o: pes/pes.h utils/math.h agents/ts_agent.h optimizers/ts_optimizer.h optimizers/ts_optimizer.cpp
 	@echo "Creating TS optimizer object..."
 	${CXX} ${CFLAGS} -c optimizers/ts_optimizer.cpp
-endif
 
-ifeq ($(USE_MOLECULE), TRUE)
 molecule.o: molecules/molecule.cpp molecules/molecule.h
 	@echo "Creating Molecule object..."
 	${CXX} ${CFLAGS} -c molecules/molecule.cpp
@@ -109,13 +89,10 @@ xtb_adapter.o: adapters/xtb_adapter.h adapters/xtb_adapter.cpp utils/xyz.h molec
 xtb_surface.o: pes/xtb_surface.h pes/xtb_surface.cpp molecules/molecule.h adapters/xtb_adapter.h pes/pes.h
 	@echo "Creating xTB PES object..."
 	${CXX} ${CFLAGS} -c pes/xtb_surface.cpp
-endif
 
-ifeq ($(USE_QHULL), TRUE)
 voronoi.o: voronoi/voronoi.cpp common.h
 	@echo "Creating qhull object.."
 	${CXX} ${CFLAGS} -c voronoi/voronoi.cpp
-endif
 
 clean:
 	@echo "Cleaning up"

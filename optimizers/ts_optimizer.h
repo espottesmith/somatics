@@ -4,6 +4,7 @@
 #define TS_OPTIMIZER_H
 
 #include <utility>
+#include <iostream>
 #include "../agents/ts_agent.h"
 #include "../pes/pes.h"
 
@@ -60,13 +61,18 @@ private:
     double min_distance_minima;
     int num_steps_allowed;
     int step_num;
-    bool converged;
-    bool failed;
+
+    int* ownership;
+    int threads;
 
 public:
 
+	bool all_converged;
+
+	int get_step_num() { return step_num; }
+
     void update();
-    void check_convergence();
+    bool check_convergence();
     void run();
     double* find_ts();
 
