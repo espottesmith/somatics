@@ -30,6 +30,7 @@ public:
 	int get_num_electrons() { return num_electrons; }
 	std::string* get_species() {return species; }
 	std::string get_specie(int index) { return species[index]; }
+	int* get_atomic_numbers();
 	double* get_coords() { return coords; }
 	double* get_atom_position(int index);
 	double* get_pairwise_distances();

@@ -8,11 +8,15 @@
 #include "../utils/xyz.h"
 #include "../molecules/molecule.h"
 
-void XTBAdapter::setup_calc(Molecule *mol, std::string prefix) {
+#include "xtb.h"
+
+using namespace xtb;
+
+void XTBAdapter::setup_calc_external(Molecule *mol, std::string prefix){
 	write_molecule_to_xyz(mol, (prefix + input_name).c_str());
 }
 
-void XTBAdapter::call_single_point(Molecule *mol, double accuracy, std::string prefix) {
+void XTBAdapter::call_single_point_external(Molecule *mol, double accuracy, std::string prefix){
 	setup_calc(mol, prefix);
 
 	std::string total_command = base_command + " " + prefix + input_name;
@@ -32,7 +36,7 @@ void XTBAdapter::call_single_point(Molecule *mol, double accuracy, std::string p
 	system(total_command.c_str());
 }
 
-void XTBAdapter::call_gradient(Molecule *mol, double accuracy, std::string prefix) {
+void XTBAdapter::call_gradient_external(Molecule *mol, double accuracy, std::string prefix){
 	setup_calc(mol, prefix);
 
 	std::string total_command = base_command + " " + prefix + input_name;
@@ -52,13 +56,13 @@ void XTBAdapter::call_gradient(Molecule *mol, double accuracy, std::string prefi
 	system(total_command.c_str());
 }
 
-void XTBAdapter::call_xtb(std::string arguments) {
+void XTBAdapter::call_xtb_external(std::string arguments){
 	std::string total_command = base_command + " " + arguments + " > " + output_name;
 	std::cout << total_command << std::endl;
 	system(total_command.c_str());
 }
 
-double XTBAdapter::parse_energy(std::string prefix) {
+double XTBAdapter::parse_energy_external(std::string prefix){
 	std::ifstream output_file ((prefix + output_name).c_str());
 
 	std::string line;
@@ -80,7 +84,7 @@ double XTBAdapter::parse_energy(std::string prefix) {
 	}
 }
 
-double XTBAdapter::parse_grad_norm(std::string prefix) {
+double XTBAdapter::parse_grad_norm_external(std::string prefix){
 	std::ifstream output_file((prefix + output_name).c_str());
 
 	std::string line;
@@ -102,7 +106,7 @@ double XTBAdapter::parse_grad_norm(std::string prefix) {
 	}
 }
 
-double* XTBAdapter::parse_gradient(std::string prefix) {
+double* XTBAdapter::parse_gradient_external(std::string prefix){
 	std::string filename = prefix + ".gradient";
 
 	std::ifstream output_file(filename);
@@ -137,6 +141,72 @@ double* XTBAdapter::parse_gradient(std::string prefix) {
 		gradient[i] = gradient_vec[i];
 	}
 	return gradient;
+}
+
+double XTBAdapter::call_single_point(Molecule *mol, int threads, double accuracy, int max_iter) {
+	const int num_atoms = mol->get_num_atoms();
+	const double* coord = mol->get_coords();
+	const int* atomic_numbers = mol->get_atomic_numbers();
+	const double charge = (double) mol->get_charge();
+	const int spin = mol->get_spin();
+	const char* output = "-";
+
+	double* energy;
+	double* grad = new double[3 * num_atoms];
+	double* dipole = new double[3];
+	double* q = new double[num_atoms];
+	double* dipm = new double[3 * num_atoms];
+	double* qp = new double[6 * num_atoms];
+	double* wbo = new double[num_atoms * num_atoms];
+
+	_SCC_options options;
+	options.prlevel = 1;
+	options.parallel = threads;
+	options.acc = accuracy;
+	options.etemp = 300.0;
+	options.grad = false;
+	options.restart = false;
+	options.ccm = false;
+	options.maxiter = max_iter;
+	char solvent[20];
+
+	GFN2_calculation(&num_atoms, &atomic_numbers, &charge, &spin, coord, &options, output,
+			energy, grad, dipole, q, dipm, qp, wbo);
+
+	return energy;
+}
+
+double XTBAdapter::call_gradient(Molecule *mol, int threads, double accuracy, int max_iter){
+	const int num_atoms = mol->get_num_atoms();
+	const double* coord = mol->get_coords();
+	const int* atomic_numbers = mol->get_atomic_numbers();
+	const double charge = (double) mol->get_charge();
+	const int spin = mol->get_spin();
+	const char* output = "-";
+
+	double* energy;
+	double* grad = new double[3 * num_atoms];
+	double* dipole = new double[3];
+	double* q = new double[num_atoms];
+	double* dipm = new double[3 * num_atoms];
+	double* qp = new double[6 * num_atoms];
+	double* wbo = new double[num_atoms * num_atoms];
+
+	_SCC_options options;
+	options.prlevel = 1;
+	options.parallel = threads;
+	options.acc = accuracy;
+	options.etemp = 300.0;
+	options.grad = true;
+	options.restart = false;
+	options.ccm = false;
+	options.maxiter = max_iter;
+	char solvent[20];
+
+	GFN2_calculation(&num_atoms, &atomic_numbers, &charge, &spin, coord, &options, output,
+			energy, grad, dipole, q, dipm, qp, wbo);
+
+	return grad;
 }
 
 XTBAdapter::XTBAdapter(std::string base_command_in, std::string input_name_in,

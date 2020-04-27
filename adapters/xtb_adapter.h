@@ -3,6 +3,9 @@
 
 #include <string>
 #include "../molecules/molecule.h"
+#include "xtb.h"
+
+using namespace xtb;
 
 class XTBAdapter {
 private:
@@ -18,13 +21,16 @@ public:
 	void set_output_name(std::string output_name_in) { output_name = output_name_in; }
 	void set_num_threads(int num_threads_in) { num_threads = num_threads_in; }
 
-	void setup_calc(Molecule* mol, std::string prefix);
-	void call_single_point(Molecule* mol, double accuracy, std::string prefix);
-	void call_gradient(Molecule* mol, double accuracy, std::string prefix);
-	void call_xtb(std::string arguments);
-	double parse_energy(std::string prefix);
-	double parse_grad_norm(std::string prefix);
-	double* parse_gradient(std::string prefix);
+	void setup_calc_external(Molecule* mol, std::string prefix);
+	void call_single_point_external(Molecule* mol, double accuracy, std::string prefix);
+	void call_gradient_external(Molecule* mol, double accuracy, std::string prefix);
+	void call_xtb_external(std::string arguments);
+	double parse_energy_external(std::string prefix);
+	double parse_grad_norm_external(std::string prefix);
+	double* parse_gradient_external(std::string prefix);
+
+	double call_single_point(Molecule* mol, int threads, double accuracy, int max_iter);
+	double call_gradient(Molecule* mol, int threads, double accuracy, int max_iter);
 
 	XTBAdapter(std::string base_command_in, std::string input_name_in, std::string output_name_in,
 			int num_threads_in);

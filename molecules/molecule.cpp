@@ -19,6 +19,21 @@ int get_electrons_for_element(std::string element) {
 	return -1;
 }
 
+int* Molecule::get_atomic_numbers() {
+
+	int* result = new int[num_atoms];
+
+	for (int a = 0; a < num_atoms; a++) {
+		for (int i = 0; i < 86; i++) {
+			if (species[a] == ATOMIC_SYMBOLS[i]) {
+				result[a] = i + 1;
+			}
+		}
+	}
+
+	return result;
+}
+
 double* Molecule::get_atom_position(int index) {
 	double* position = new double[3];
 

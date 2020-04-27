@@ -56,7 +56,9 @@ def visualize_surface(f, xmin=-1, xmax=1, ymin=-1, ymax=1):
     xs, ys = np.meshgrid(x, y)
     zs = f(xs, ys)
 
-    ax.plot_surface(xs, ys, zs, cmap='rainbow')
+    # colormap = plt.cm.get_cmap("RdYlBu").reversed()
+
+    ax.plot_surface(xs, ys, zs, cmap="coolwarm")
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('E')
@@ -96,7 +98,7 @@ def visualize_multiple_trajectories(f, trajectories, xmin=-1, xmax=1, ymin=-1, y
     xs, ys = np.meshgrid(x, y)
     zs = f(xs, ys)
 
-    ax.plot_surface(xs, ys, zs, cmap='rainbow', alpha=0.5)
+    ax.plot_surface(xs, ys, zs, cmap='RdYlBu', alpha=0.5)
     ax.set_xlabel('x')
     ax.set_ylabel('y')
     ax.set_zlabel('E')

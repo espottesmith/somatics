@@ -31,6 +31,13 @@ CFLAGS += -I$(QHULLDIR)/include
 endif
 endif
 
+ifeq ($(USE_MOLECULE), TRUE)
+ifeq ($(ON_CORI), TRUE)
+XTBDIR=/global/homes/e/ewcss/software/grimme/xtb_6.2.2/
+CFLAGS += -I$(XTBDIR)/include
+endif
+endif
+
 DEPS = main.cpp common.h utils/math.h pes/pes.h pes/test_surfaces.h
 OBJS = main.o math.o test_surfaces.o common.o
 EXTERN = 
@@ -62,6 +69,7 @@ endif
 ifeq ($(USE_MOLECULE), TRUE)
 DEPS += molecules/molecule.h utils/xyz.h adapters/xtb_adapter.h pes/xtb_surface.h
 OBJS += molecule.o xyz.o xtb_adapter.o xtb_surface.o
+EXTERN += -L$(XTBDIR)/lib64 -lxtb
 DEFINES	+= -DUSE_MOLECULE=$(USE_MOLECULE)
 endif
 

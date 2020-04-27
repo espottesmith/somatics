@@ -21,8 +21,11 @@ public:
 	XTBAdapter get_adapter() { return adapter; }
 	double get_accuracy() { return accuracy; }
 
-	double calculate_energy (double* position, std::string name_space);
-	double* calculate_gradient (double* position, std::string name_space);
+	double calculate_energy_external (double* position, std::string name_space);
+	double* calculate_gradient_external (double* position, std::string name_space);
+
+	double calculate_energy(double* position);
+	double calculate_gradient(double* position);
 
 	XTBSurface(Molecule molecule_in, XTBAdapter adapter_in, double accuracy_in,
 			double* lower_bounds_in, double* upper_bounds_in);
