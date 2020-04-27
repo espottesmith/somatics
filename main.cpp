@@ -247,6 +247,7 @@ int main(int argc, char** argv) {
 	                std::chrono::duration<double> diff_ts = t_end_ts_find - t_start_ts_find;
 					double time_ts_find = diff_ts.count();
 	                std::cout << i << " " << j << " " << k << ": " << time_ts_find << std::endl;
+	                std::cout << ts_opt.get_step_num() << std::endl;
 	                if (ts_opt.all_converged) {
 	                    double* ts = ts_opt.find_ts();
 		                for (int d = 0; d < num_dim; d++) {
@@ -255,6 +256,7 @@ int main(int argc, char** argv) {
 		                std::cout << std::endl;
 		                break;
 	                }
+	                std::cout << std::endl;
   	    		}
   	    	}
   	    }
