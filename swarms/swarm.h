@@ -120,7 +120,7 @@ public:
 		/* printf("Got here B 1 \n"); */
 
 		double energy = pot_energy_surf->calculate_energy(base.pos);
-		
+
 		base.fitness = energy;
 		/* base.fitness = (*pot_energy_surf).calculate_energy(base.pos, name); */
 

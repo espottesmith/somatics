@@ -69,7 +69,7 @@ endif
 ifeq ($(USE_MOLECULE), TRUE)
 DEPS += molecules/molecule.h utils/xyz.h adapters/xtb_adapter.h pes/xtb_surface.h
 OBJS += molecule.o xyz.o xtb_adapter.o xtb_surface.o
-EXTERN += $(XTBDIR)/lib64/libxtb.a
+EXTERN += -L $(XTBDIR)/lib64 -lxtb
 DEFINES	+= -DUSE_MOLECULE=$(USE_MOLECULE)
 endif
 
