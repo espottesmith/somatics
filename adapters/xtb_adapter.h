@@ -30,7 +30,7 @@ public:
 	double* parse_gradient_external(std::string prefix);
 
 	double call_single_point(Molecule* mol, int threads, double accuracy, int max_iter);
-	double call_gradient(Molecule* mol, int threads, double accuracy, int max_iter);
+	double* call_gradient(Molecule* mol, int threads, double accuracy, int max_iter);
 
 	XTBAdapter(std::string base_command_in, std::string input_name_in, std::string output_name_in,
 			int num_threads_in);

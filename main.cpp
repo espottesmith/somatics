@@ -123,7 +123,7 @@ int main(int argc, char** argv) {
 		XTBAdapter adapter = XTBAdapter("xtb", "input.xyz", "xtb.out", num_threads_xtb);
 		double* lb = get_lower_bounds(mol);
 		double* ub = get_upper_bounds(mol);
-		xtbsurf = XTBSurface(mol, adapter, 0.2, lb, ub);
+		xtbsurf = XTBSurface(mol, adapter, 0.2, lb, ub, num_threads_xtb);
 		pes = &xtbsurf;
 #endif //USE_MOLECULE
 

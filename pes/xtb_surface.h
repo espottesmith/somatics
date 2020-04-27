@@ -15,6 +15,7 @@ private:
 	Molecule molecule;
 	XTBAdapter adapter;
 	double accuracy;
+	int threads;
 
 public:
 	Molecule get_molecule() { return molecule; }
@@ -28,7 +29,7 @@ public:
 	double* calculate_gradient(double* position);
 
 	XTBSurface(Molecule molecule_in, XTBAdapter adapter_in, double accuracy_in,
-			double* lower_bounds_in, double* upper_bounds_in);
+			double* lower_bounds_in, double* upper_bounds_in, int threads_in);
 
 	XTBSurface();
 
