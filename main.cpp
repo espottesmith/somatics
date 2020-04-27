@@ -45,6 +45,7 @@
 int num_agents_min;
 int num_agents_ts;
 int num_dim;
+int num_threads;
 
 int main(int argc, char** argv) {
 	// Parse Args
@@ -68,7 +69,13 @@ int main(int argc, char** argv) {
 	num_agents_min = find_int_arg(argc, argv, "-nmin", 1000);
 	num_agents_ts = find_int_arg(argc, argv, "-nts", 8);
 
-	int num_threads = find_int_arg(argc, argv, "-nthreads", 1);
+	num_threads = find_int_arg(argc, argv, "-nthreads", 1);
+#ifdef USE_OMP
+	omp_set_dynamic(0);
+	omp_set_num_threads(num_threads);
+	std::cout << "MAIN: NUMBER OF THREADS " << omp_get_num_threads() << std::endl;
+	std::cout << "MAIN: MAX NUMBER OF THREADS " << omp_get_max_threads() << std::endl;
+#endif //USE_OMP
 
 	double min_find_tol = 1.0 * pow(10, -1.0 * find_int_arg(argc, argv, "-mtol", 8));
 	double unique_min_tol = 1.0 * pow(10, -1.0 * find_int_arg(argc, argv, "-utol", 6));
@@ -83,11 +90,14 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	Molecule mol;
+	std::string surface(surf_name);
+	std::cout << surface << std::endl;
 
 	PotentialEnergySurface* pes;
 
+#ifdef USE_MOLECULE
 	XTBSurface xtbsurf;
+#endif
 
 	Muller_Brown mbsurf;
 	Halgren_Lipscomb hlsurf;
@@ -96,8 +106,8 @@ int main(int argc, char** argv) {
 	Culot_Dive_Nguyen_Ghuysen cdng;
 
 	if (molfile != nullptr) {
-		mol = xyz_to_molecule(molfile);
-		std::cout << "Made molecule" << std::endl;
+#ifdef USE_MOLECULE
+		Molecule mol = xyz_to_molecule(molfile);
 
 		num_dim = mol.get_num_atoms() * 3;
 
@@ -108,13 +118,14 @@ int main(int argc, char** argv) {
 		if (num_threads_xtb == 0) {
 			num_threads_xtb = 1;
 		}
-#endif
+#endif //USE_OMP
 
 		XTBAdapter adapter = XTBAdapter("xtb", "input.xyz", "xtb.out", num_threads_xtb);
 		double* lb = get_lower_bounds(mol);
 		double* ub = get_upper_bounds(mol);
 		xtbsurf = XTBSurface(mol, adapter, 0.2, lb, ub);
 		pes = &xtbsurf;
+#endif //USE_MOLECULE
 
 	} else if (surf_name != nullptr) {
 		num_dim = 2;
@@ -131,7 +142,7 @@ int main(int argc, char** argv) {
 			double ub[2] = {4.0, 4.0};
 			hlsurf = Halgren_Lipscomb(lb, ub);
 			pes = &hlsurf;
-		} else if (surface == "Cerjan_Milller") {
+		} else if (surface == "Cerjan_Miller") {
 			double lb[2] = {-2.5, -1.5};
 			double ub[2] = {2.5, 1.5};
 			cmsurf = Cerjan_Miller(lb, ub);
@@ -176,7 +187,7 @@ int main(int argc, char** argv) {
 		min_agent_bases[a].vel = new double[num_dim];
 		min_agent_bases[a].pos_best = new double[num_dim];
 	}
-	
+
 	region_t region;
 	region.lo = new double[num_dim];
 	region.hi = new double[num_dim];
@@ -199,16 +210,13 @@ int main(int argc, char** argv) {
 	MinimaNicheSwarm swarm(pes, min_agent_bases, num_agents_min,
 			       inertia, cognit, social,
 			       max_subswarm_size, 3, var_threshold);
-	// MinimaSwarm swarm(pes, min_agent_bases, num_agents_min, inertia, cognit, social);
 	std::cout << "Defined swarm" << std::endl;
-	
+
 	MinimaNicheOptimizer optimizer (swarm, min_find_tol, unique_min_tol, max_iter, savefreq);
-	// MinimaOptimizer optimizer (swarm, min_find_tol, max_iter, savefreq);
 	std::cout << "Defined optimizer" << std::endl;
 
 	auto t_start_min_find = std::chrono::steady_clock::now();
 
-	// optimizer.optimize(fsave);
 	std::vector<double*> minima = optimizer.optimize(fsave);
 	auto t_end_min_find = std::chrono::steady_clock::now();
 	std::chrono::duration<double> diff = t_end_min_find - t_start_min_find;
@@ -245,9 +253,7 @@ int main(int argc, char** argv) {
 	}
 
 #endif
-
 #ifdef USE_MPI
 	MPI_Finalize();
 #endif
-
 }

@@ -18,6 +18,7 @@
 extern int num_dim;
 extern int num_agents_min;
 extern int num_agents_ts;
+extern int num_threads;
 
 // Particle Data Structure
 typedef struct agent_base_t {
