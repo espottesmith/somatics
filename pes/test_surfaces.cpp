@@ -5,7 +5,7 @@
 #include "test_surfaces.h"
 
 // Muller-Brown surface
-double Muller_Brown::calculate_energy(double* position, std::string name_space){
+double Muller_Brown::calculate_energy(double* position){
     double x = position[0];
     double y = position[1];
 
@@ -25,7 +25,7 @@ double Muller_Brown::calculate_energy(double* position, std::string name_space){
     return total;
 }
 
-double* Muller_Brown::calculate_gradient(double* position, std::string name_space){
+double* Muller_Brown::calculate_gradient(double* position){
     double x = position[0];
     double y = position[1];
     double* gradient = new double[2];
@@ -53,13 +53,13 @@ Muller_Brown::Muller_Brown (double* lower_bounds_in, double* upper_bounds_in): P
 Muller_Brown::Muller_Brown (): PotentialEnergySurface(){}
 
 
-double Halgren_Lipscomb::calculate_energy(double* position, std::string name_space){
+double Halgren_Lipscomb::calculate_energy(double* position){
     double x = position[0];
     double y = position[1];
     return pow((x - y) * (x - y) - 5.0/3.0, 2) + 4 * (x * y - 4) * (x * y - 4) + x - y;
 }
 
-double* Halgren_Lipscomb::calculate_gradient(double* position, std::string name_space) {
+double* Halgren_Lipscomb::calculate_gradient(double* position) {
     double x = position[0];
     double y = position[1];
     double* gradient = new double[2];
@@ -73,13 +73,13 @@ Halgren_Lipscomb::Halgren_Lipscomb (double* lower_bounds_in, double* upper_bound
 Halgren_Lipscomb::Halgren_Lipscomb (): PotentialEnergySurface(){}
 
 
-double Cerjan_Miller::calculate_energy(double* position, std::string name_space) {
+double Cerjan_Miller::calculate_energy(double* position) {
     double x = position[0];
     double y = position[1];
     return (1 - y*y) * x*x * exp(- x*x) + 0.2 * y*y;
 }
 
-double* Cerjan_Miller::calculate_gradient(double* position, std::string name_space) {
+double* Cerjan_Miller::calculate_gradient(double* position) {
     double x = position[0];
     double y = position[1];
     double* gradient = new double[2];
@@ -93,13 +93,13 @@ Cerjan_Miller::Cerjan_Miller (double* lower_bounds_in, double* upper_bounds_in):
 Cerjan_Miller::Cerjan_Miller (): PotentialEnergySurface(){}
 
 
-double Quapp_Wolfe_Schlegel::calculate_energy(double* position, std::string name_space) {
+double Quapp_Wolfe_Schlegel::calculate_energy(double* position) {
     double x = position[0];
     double y = position[1];
     return pow(x, 4) + pow(y, 4) - 2 * x*x - 4 * y*y + x * y + 0.2 * x + 0.1 * y;
 }
 
-double* Quapp_Wolfe_Schlegel::calculate_gradient(double* position, std::string name_space) {
+double* Quapp_Wolfe_Schlegel::calculate_gradient(double* position) {
     double x = position[0];
     double y = position[1];
     double* gradient = new double[2];
@@ -113,7 +113,7 @@ Quapp_Wolfe_Schlegel::Quapp_Wolfe_Schlegel (double* lower_bounds_in, double* upp
 Quapp_Wolfe_Schlegel::Quapp_Wolfe_Schlegel (): PotentialEnergySurface(){}
 
 
-double Culot_Dive_Nguyen_Ghuysen::calculate_energy(double* position, std::string name_space) {
+double Culot_Dive_Nguyen_Ghuysen::calculate_energy(double* position) {
     double x = position[0];
     double y = position[1];
     return pow(x*x + y - 11, 2) + pow(x + y*y - 7, 2);
@@ -121,7 +121,7 @@ double Culot_Dive_Nguyen_Ghuysen::calculate_energy(double* position, std::string
 
 }
 
-double* Culot_Dive_Nguyen_Ghuysen::calculate_gradient(double* position, std::string name_space) {
+double* Culot_Dive_Nguyen_Ghuysen::calculate_gradient(double* position) {
     double x = position[0];
     double y = position[1];
     double* gradient = new double[2];

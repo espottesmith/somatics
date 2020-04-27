@@ -66,8 +66,8 @@ public:
         }
     }
 
-    virtual double calculate_energy(double* position, std::string name_space) = 0;
-    virtual double* calculate_gradient(double* position, std::string name_space) = 0;
+    virtual double calculate_energy(double* position) = 0;
+    virtual double* calculate_gradient(double* position) = 0;
 
     PotentialEnergySurface(int d, double* low_b, double* up_b) {
         dimension = d;
