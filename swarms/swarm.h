@@ -114,14 +114,12 @@ class MinimaAgent {
   MinimaAgent() {}
 
   void fitness_calc (PotentialEnergySurface* pot_energy_surf) {
-
-    std::string name = "FITNESS" + std::to_string(base.id);
     
     /* printf("Got here B 0 \n"); */
     /* for (int d=0; d<num_dim; d++) { printf("base.pos[%i] = %f\n", d, base.pos[d]); } */
     /* printf("Got here B 1 \n"); */
 
-    base.fitness = pot_energy_surf->calculate_energy(base.pos, name);
+    base.fitness = pot_energy_surf->calculate_energy(base.pos);
     /* base.fitness = (*pot_energy_surf).calculate_energy(base.pos, name); */
 
     if (base.fitness < base.fitness_best || base.fitness_best == -1.0 ) {

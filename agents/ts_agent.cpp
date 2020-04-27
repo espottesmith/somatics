@@ -74,12 +74,12 @@ void TransitionStateAgent::update_score(double* grad_norms, double* differences_
 }
 
 void TransitionStateAgent::update_energy(PotentialEnergySurface* pes) {
-	energy = pes -> calculate_energy(position, name);
+	energy = pes -> calculate_energy(position);
 }
 
 void TransitionStateAgent::update_gradient(PotentialEnergySurface* pes) {
 	history_grad.push_back(grad);
-	grad = pes -> calculate_gradient(position, name);
+	grad = pes -> calculate_gradient(position);
 	grad_norm = array_norm(grad, num_dim);
 	grad_rms = root_mean_square(grad, num_dim);
 }
