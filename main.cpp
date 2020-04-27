@@ -89,7 +89,9 @@ int main(int argc, char** argv) {
 	Molecule mol;
 
 	PotentialEnergySurface* pes;
-
+	double* lb;
+	double* ub;
+	
 	XTBSurface xtbsurf;
 
 	Muller_Brown mbsurf;
@@ -114,8 +116,10 @@ int main(int argc, char** argv) {
 #endif
 
 		XTBAdapter adapter = XTBAdapter("xtb", "input.xyz", "xtb.out", num_threads_xtb);
-		double* lb = get_lower_bounds(mol, 1.0);
-		double* ub = get_upper_bounds(mol, 1.0);
+		lb = new double[num_dim];
+		ub = new double[num_dim];
+	        lb = get_lower_bounds(mol, 1.0);
+	        ub = get_upper_bounds(mol, 1.0);
 		xtbsurf = XTBSurface(mol, adapter, 0.2, lb, ub);
 		pes = &xtbsurf;
 
@@ -125,28 +129,33 @@ int main(int argc, char** argv) {
 		std::string surface(surf_name);
 
 		if (surface == "Muller_Brown") {
-			double lb[2] = {-1.25, -1.5};
-			double ub[2] = {1.25, 1.75};
+		        lb = new double[num_dim]; ub = new double[num_dim];
+		        lb[0] = -1.25; lb[1] = -1.50;
+			ub[0] =  1.25; ub[1] =  1.75;
 			mbsurf = Muller_Brown(lb, ub);
 			pes = &mbsurf;
 		} else if (surface == "Halgren_Lipscomb") {
-			double lb[2] = {0.5, 0.5};
-			double ub[2] = {4.0, 4.0};
+		        lb = new double[num_dim]; ub = new double[num_dim];
+		        lb[0] = 0.5; lb[1] = 0.5;
+			ub[0] = 4.0; ub[1] = 4.0;
 			hlsurf = Halgren_Lipscomb(lb, ub);
 			pes = &hlsurf;
 		} else if (surface == "Cerjan_Milller") {
-			double lb[2] = {-2.5, -1.5};
-			double ub[2] = {2.5, 1.5};
+		        lb = new double[num_dim]; ub = new double[num_dim];
+		        lb[0] = -2.5; lb[1] = -1.5;
+			ub[0] =  2.5; ub[1] =  1.5;
 			cmsurf = Cerjan_Miller(lb, ub);
 			pes = &cmsurf;
 		} else if (surface == "Quapp_Wolfe_Schlegel") {
-			double lb[2] = {-2.0, -2.0};
-			double ub[2] = {2.0, 2.0};
+		        lb = new double[num_dim]; ub = new double[num_dim];
+		        lb[0] = -2.0; lb[1] = -2.0;
+			ub[0] =  2.0; ub[1] =  2.0;
 			qwssurf = Quapp_Wolfe_Schlegel(lb, ub);
 			pes = &qwssurf;
 		} else if (surface == "Culot_Dive_Nguyen_Ghuysen") {
-			double lb[2] = {-4.5, -4.5};
-			double ub[2] = {4.5, 4.5};
+		        lb = new double[num_dim]; ub = new double[num_dim];
+		        lb[0] = -4.5; lb[1] = -4.5;
+			ub[0] =  4.5; ub[1] =  4.5;
 			cdng = Culot_Dive_Nguyen_Ghuysen(lb, ub);
 			pes = &cdng;
 		} else {
@@ -174,9 +183,10 @@ int main(int argc, char** argv) {
 	std::ofstream fsave(filename);
 
 	int num_agents_min = (num_agents_min_tot + num_procs - 1) / num_procs;
-	if (rank == num_procs - 1) {
+	if (mpi_rank == num_procs - 1) {
 	  num_agents_min -= num_procs * num_agents_min - num_agents_min_tot;
 	}
+	printf("num agents = %i (rank = %i) \n", num_agents_min, mpi_rank);
 #else
 	std::ofstream fsave("minima.txt");
 
@@ -193,7 +203,9 @@ int main(int argc, char** argv) {
 	
 #ifdef USE_MPI
 	int decomp [num_dim];
+	int decomp_indices[num_dim];
 	factor (decomp, num_procs, num_dim);
+	get_indices (decomp_indices, decomp, mpi_rank, num_dim);
 #endif
 	
 	region_t region;
@@ -203,12 +215,12 @@ int main(int argc, char** argv) {
 	        region.lo[d] = pes->get_lower_bound(d);
 		region.hi[d] = pes->get_upper_bound(d);
 #ifdef USE_MPI
-	        int decomp_indices[num_dim];
-	        get_indices (decomp_indices, decomp, mpi_rank, num_dim);
+		// printf("decomp[%i] = %i (rank %i) \n", d, decomp_indices[d], mpi_rank);
 		double size = (region.hi[d] - region.lo[d]) / decomp[d];
 		region.lo[d] = region.lo[d] + size * decomp_indices[d];
-		region.hi[d] = region.lo[d] + size * (1 + decomp_indices[d]);
+		region.hi[d] = region.lo[d] + size;
 #endif
+		printf("lo = %f, hi = %f \n", region.lo[d], region.hi[d]);
 	}
 	std::cout << "Defined region" << std::endl;
 
@@ -235,6 +247,7 @@ int main(int argc, char** argv) {
 	auto t_start_min_find = std::chrono::steady_clock::now();
 
 	std::vector<double*> minima = optimizer.optimize(fsave);
+	
 	auto t_end_min_find = std::chrono::steady_clock::now();
 	std::chrono::duration<double> diff = t_end_min_find - t_start_min_find;
 	double time_min_find = diff.count();

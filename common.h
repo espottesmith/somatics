@@ -37,9 +37,10 @@ typedef struct agent_prop_t {
 } agent_prop_t;
 
 typedef struct swarm_prop_t {
+  int id;                    // Swarm ID
   double* pos_best;          // Best position
   double fitness_best;       // Best fitness value
-  double radius_squared;
+  double radius_squared;     // Radius - squared
 } swarm_prop_t;
 
 #ifdef USE_MPI
@@ -49,8 +50,8 @@ extern MPI_Datatype SwarmPropMPI;
 
 typedef struct mapping_t {
   int rank;
-  int part_idx;
-  int swarm_idx;
+  int part_id;
+  int swarm_id;
 } mapping_t;
 #endif
 

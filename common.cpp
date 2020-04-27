@@ -137,6 +137,12 @@ void init_agents(agent_base_t* agent_bases, int num_agent_bases, region_t region
 	int lengths[num_dim];
 	factor(lengths, num_agent_bases, num_dim);
 
+	printf("decomp = ");
+	for (int d=0; d<num_dim; d++) {
+	  printf("%i ", lengths[d]);
+	}
+	printf("\n");
+	
 	std::vector<int> shuffle(num_agent_bases);
 	for (int i = 0; i < shuffle.size(); ++i) {
 		shuffle[i] = i;
@@ -154,9 +160,16 @@ void init_agents(agent_base_t* agent_bases, int num_agent_bases, region_t region
 		int indices[num_dim];
 		get_indices (indices, lengths, i, num_dim);
 
+		// printf("indices = ");
+		// for (int d=0; d<num_dim; d++) {
+		//   printf("%i ", indices[d]);
+		// }
+		// printf(" (rank %i)\n", mpi_rank);
+
 		for (int d = 0; d < num_dim; d++) {
 			double size = region.hi[d] - region.lo[d];
-			agent_bases[i].pos[d] = size * (1. + indices[d]) / (1 + lengths[d]) + region.lo[d];
+			// printf("size = %f (rank %i)\n", size, mpi_rank);
+			agent_bases[i].pos[d] = size * (0.5 + indices[d]) / (1.0 * lengths[d]) + region.lo[d];
 		}
 
 		// Assign random velocities within a bound
@@ -264,13 +277,14 @@ void init_mpi_structs () {
     swarm_prop_t subswarm_prop;
     subswarm_prop.pos_best = new double[num_dim];
     
-    const int nitems = 3;
-    int blocklengths[nitems] = {num_dim, 1, 1};
-    MPI_Datatype types[nitems] = {MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE};
+    const int nitems = 4;
+    int blocklengths[nitems] = {1, num_dim, 1, 1};
+    MPI_Datatype types[nitems] = {MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE};
     MPI_Aint offsets[nitems], base;
   
     int count = 0;
     MPI_Get_address(&subswarm_prop,                   offsets+count++);
+    MPI_Get_address(&(subswarm_prop.id),              offsets+count++);
     MPI_Get_address(subswarm_prop.pos_best,           offsets+count++);
     MPI_Get_address(&(subswarm_prop.fitness_best),    offsets+count++);
     MPI_Get_address(&(subswarm_prop.radius_squared),  offsets+count++);
