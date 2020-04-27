@@ -13,6 +13,8 @@
 
 #include "pes/pes.h"
 
+#define DIST_LIM 1000000.00
+
 extern int num_dim;
 extern int num_agents_min_tot;
 extern int num_agents_ts;
