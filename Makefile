@@ -30,20 +30,16 @@ OBJS = main.o math.o test_surfaces.o common.o
 EXTERN = 
 
 DEPS += swarms/swarm.h optimizers/optimizer.h
-DEFINES	+= -DUSE_MIN_FINDER=$(USE_MIN_FINDER)
 
 DEPS += optimizers/ts_optimizer.h
 OBJS += ts_agent.o ts_optimizer.o
-DEFINES	+= -DUSE_TS_FINDER=$(USE_TS_FINDER)
 
 EXTERN += -fopenmp
 CFLAGS += -fopenmp
-DEFINES += -DUSE_OMP=$(USE_OMP)
 
 DEPS += voronoi/voronoi.h 
 OBJS += voronoi.o
 EXTERN += -L$(QHULLDIR)/lib -lqhullcpp -lqhull_r
-DEFINES	+= -DUSE_QHULL=$(USE_QHULL)
 
 ifeq ($(USE_MOLECULE), TRUE)
 DEPS += molecules/molecule.h utils/xyz.h adapters/xtb_adapter.h pes/xtb_surface.h
