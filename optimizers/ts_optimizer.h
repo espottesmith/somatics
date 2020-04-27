@@ -67,6 +67,10 @@ private:
 
 public:
 
+	bool all_converged;
+
+	int get_step_num() { return step_num; }
+
     void update();
     bool check_convergence();
     void run();

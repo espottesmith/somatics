@@ -1,6 +1,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstring>
+#include <string.h>
 #include <fstream>
 #include <iostream>
 #include <random>
@@ -88,9 +89,6 @@ int main(int argc, char** argv) {
 		std::cout << "No molecule or surface was provided. Exiting" << std::endl;
 		return 1;
 	}
-
-	std::string surface(surf_name);
-	std::cout << surface << std::endl;
 
 	PotentialEnergySurface* pes;
 
@@ -238,13 +236,28 @@ int main(int argc, char** argv) {
 	for (int i = 0; i < num_min; i++) {
   	    for (int j = 0; j < i; j++) {
   	    	if (outpairs[i * num_min + j] == 1) {
-  	    		TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes, minima[i], minima[j], savefreq, "ts.txt");
-  	    		ts_opt.run();
-  	    		double* ts = ts_opt.find_ts();
-  	    		for (int d = 0; d < num_dim; d++) {
-  	    			std::cout << ts[d] << " ";
+  	    		for (int k = 0; k < 5; k++) {
+  	    			std::string filestring = "ts" + std::to_string(i) + "_" + std::to_string(j) + "_" + std::to_string(k) + ".txt";
+	                char* filename = strdup(filestring.c_str());
+                    TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes,
+                    		minima[i], minima[j], savefreq, filename);
+                    auto t_start_ts_find = std::chrono::steady_clock::now();
+	                ts_opt.run();
+	                auto t_end_ts_find = std::chrono::steady_clock::now();
+	                std::chrono::duration<double> diff_ts = t_end_ts_find - t_start_ts_find;
+					double time_ts_find = diff_ts.count();
+	                std::cout << i << " " << j << " " << k << ": " << time_ts_find << std::endl;
+	                std::cout << ts_opt.get_step_num() << std::endl;
+	                if (ts_opt.all_converged) {
+	                    double* ts = ts_opt.find_ts();
+		                for (int d = 0; d < num_dim; d++) {
+		                    std::cout << ts[d] << " ";
+		                }
+		                std::cout << std::endl;
+		                break;
+	                }
+	                std::cout << std::endl;
   	    		}
-  	    		std::cout << std::endl;
   	    	}
   	    }
 	}
