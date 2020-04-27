@@ -73,7 +73,6 @@ int main(int argc, char** argv) {
 #ifdef USE_OMP
 	omp_set_dynamic(0);
 	omp_set_num_threads(num_threads);
-	std::cout << "MAIN: NUMBER OF THREADS " << omp_get_num_threads() << std::endl;
 	std::cout << "MAIN: MAX NUMBER OF THREADS " << omp_get_max_threads() << std::endl;
 #endif //USE_OMP
 
@@ -90,9 +89,6 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	std::string surface(surf_name);
-	std::cout << surface << std::endl;
-
 	PotentialEnergySurface* pes;
 
 #ifdef USE_MOLECULE
@@ -108,7 +104,6 @@ int main(int argc, char** argv) {
 	if (molfile != nullptr) {
 #ifdef USE_MOLECULE
 		Molecule mol = xyz_to_molecule(molfile);
-
 		num_dim = mol.get_num_atoms() * 3;
 
 		int num_threads_xtb = 1;
@@ -125,6 +120,9 @@ int main(int argc, char** argv) {
 		double* ub = get_upper_bounds(mol);
 		xtbsurf = XTBSurface(mol, adapter, 0.2, lb, ub, num_threads_xtb);
 		pes = &xtbsurf;
+
+		double energy = pes->calculate_energy(mol.get_coords());
+		std::cout << energy << std::endl;
 #endif //USE_MOLECULE
 
 	} else if (surf_name != nullptr) {
@@ -175,6 +173,7 @@ int main(int argc, char** argv) {
 // 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 // 	init_mpi_structs ();
 // #endif
+
 
 #ifdef USE_MIN_FINDER
 

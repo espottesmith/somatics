@@ -145,13 +145,13 @@ double* XTBAdapter::parse_gradient_external(std::string prefix){
 
 double XTBAdapter::call_single_point(Molecule *mol, int threads, double accuracy, int max_iter) {
 	const int num_atoms = mol->get_num_atoms();
-	const double* coord = mol->get_coords();
 	const int* atomic_numbers = mol->get_atomic_numbers();
 	const double charge = (double) mol->get_charge();
 	const int spin = mol->get_spin();
+	const double* coord = mol->get_coords();
 	const char* output = "-";
 
-	double* energy;
+	double energy;
 	double* grad = new double[3 * num_atoms];
 	double* dipole = new double[3];
 	double* q = new double[num_atoms];
@@ -168,12 +168,13 @@ double XTBAdapter::call_single_point(Molecule *mol, int threads, double accuracy
 	options.restart = false;
 	options.ccm = false;
 	options.maxiter = max_iter;
-	char solvent[20];
+	options.solvent[0] = 'w'; options.solvent[1] = 'a'; options.solvent[2] = 't';
+	options.solvent[3] = 'e'; options.solvent[4] = 'r'; options.solvent[5] = '\0';
 
-	GFN2_calculation(&num_atoms, atomic_numbers, &charge, &spin, coord, &options, output,
-			energy, grad, dipole, q, dipm, qp, wbo);
+	GFN2_calculation(&num_atoms, atomic_numbers, &charge, &spin, coord, &options, nullptr,
+			&energy, grad, dipole, q, dipm, qp, wbo);
 
-	return *energy;
+	return energy;
 }
 
 double* XTBAdapter::call_gradient(Molecule *mol, int threads, double accuracy, int max_iter){
@@ -184,7 +185,7 @@ double* XTBAdapter::call_gradient(Molecule *mol, int threads, double accuracy, i
 	const int spin = mol->get_spin();
 	const char* output = "-";
 
-	double* energy;
+	double energy;
 	double* grad = new double[3 * num_atoms];
 	double* dipole = new double[3];
 	double* q = new double[num_atoms];
@@ -201,10 +202,11 @@ double* XTBAdapter::call_gradient(Molecule *mol, int threads, double accuracy, i
 	options.restart = false;
 	options.ccm = false;
 	options.maxiter = max_iter;
-	char solvent[20];
+	options.solvent[0] = 'w'; options.solvent[1] = 'a'; options.solvent[2] = 't';
+	options.solvent[3] = 'e'; options.solvent[4] = 'r'; options.solvent[5] = '\0';
 
-	GFN2_calculation(&num_atoms, atomic_numbers, &charge, &spin, coord, &options, output,
-			energy, grad, dipole, q, dipm, qp, wbo);
+	GFN2_calculation(&num_atoms, atomic_numbers, &charge, &spin, coord, &options, nullptr,
+			&energy, grad, dipole, q, dipm, qp, wbo);
 
 	return grad;
 }
