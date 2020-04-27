@@ -111,9 +111,9 @@ class MinimaNicheOptimizer {
     int num_min_agent = swarm.num_min_agent;
 
     double fitness_diff = -1.0;
-#ifdef USE_OMP
+
     omp_set_num_threads(64);
-#endif
+
     for (int step = 0; (step < max_iter) && (fitness_diff > min_find_tol || fitness_diff <= 0.0); ++step) {
 
       fitness_diff = fitness_best_global;

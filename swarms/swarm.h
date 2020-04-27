@@ -8,13 +8,10 @@
 #include <stdio.h>
 #include <iostream>
 #include <functional>
+#include <omp.h>
 
 #ifdef USE_MPI
 #include <mpi.h>
-#endif
-
-#ifdef USE_OMP
-#include <omp.h>
 #endif
 
 #include "../common.h"
@@ -258,17 +255,13 @@ class MinimaSwarm {
   MinimaSwarm () {}
 
   void update_fitnesses (double& fitness_best_global, std::vector<double> &pos_best_global) {
-#ifdef USE_OMP
 #pragma omp parallel default(shared)
     {
     #pragma omp for
-#endif
     for (int p = 0; p < num_min_agent; p++) {
       agents[p].fitness_calc(pot_energy_surf);
     }
-#ifdef USE_OMP
     }
-#endif
 
     for (int p = 0; p < num_min_agent; p++) {
       if ( agents[p].base.fitness < fitness_best_global ||  fitness_best_global == -1.0 ) {
@@ -287,17 +280,13 @@ class MinimaSwarm {
 
     double fitness_best_global_old = fitness_best_global;
 
-#ifdef USE_OMP
 #pragma omp parallel default(shared)
     {
     #pragma omp for
-#endif
     for (int p = 0; p < num_min_agent; p++) {
       agents[p].fitness_calc(pot_energy_surf);
     }
-#ifdef USE_OMP
     }
-#endif
 
     for (int p=0; p<num_min_agent; p++) {
       if ( agents[p].base.fitness < fitness_best_global ||  fitness_best_global == -1.0 ) {
@@ -333,26 +322,20 @@ class MinimaSwarm {
   }
 
   void update_velocities (std::vector< double > pos_best_global) {
-#ifdef USE_OMP
 #pragma omp parallel default(shared)
     {
     #pragma omp for
-#endif
     for (int p = 0; p < num_min_agent; p++) {
       agents[p].update_velocity(pos_best_global);
     }
-#ifdef USE_OMP
     }
-#endif
 
   }
 
   void update_velocities_gcpso (std::vector< double > pos_best_global) {
-#ifdef USE_OMP
 #pragma omp parallel default(shared)
     {
     #pragma omp for
-#endif
     for (int p = 0; p < num_min_agent; p++) {
       if (p == index_best) {
         agents[index_best].update_velocity_best(pos_best_global, rho);
@@ -361,23 +344,17 @@ class MinimaSwarm {
 	agents[p].update_velocity(pos_best_global);
       }
     }
-#ifdef USE_OMP
     }
-#endif
   }
 
   void move_swarm () {
-#ifdef USE_OMP
 #pragma omp parallel default(shared)
     {
     #pragma omp for
-#endif
     for (int p = 0; p < num_min_agent; p++) {
       agents[p].update_position(region);
     }
-#ifdef USE_OMP
     }
-#endif
 
   }
 

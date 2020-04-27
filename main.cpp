@@ -7,35 +7,25 @@
 #include <random>
 #include <vector>
 #include <utility>
+#include <omp.h>
 
 #include "common.h"
+#include "voronoi/voronoi.h"
+#include "pes/pes.h"
+#include "pes/test_surfaces.h"
+#include "swarms/swarm.h"
+#include "optimizers/optimizer.h"
+#include "optimizers/ts_optimizer.h"
 
 #ifdef USE_MPI
 	#include <mpi.h>
 #endif
-
-#ifdef USE_OMP
-	#include <omp.h>
-#endif
-
-#ifdef USE_QHULL
-	#include "voronoi/voronoi.h"
-#endif
-
-#include "pes/pes.h"
-#include "pes/test_surfaces.h"
 
 #ifdef USE_MOLECULE
 	#include "adapters/xtb_adapter.h"
 	#include "utils/xyz.h"
 	#include "molecules/molecule.h"
 	#include "pes/xtb_surface.h"
-#endif
-
-#ifdef USE_MIN_FINDER
-	#include "swarms/swarm.h"
-	#include "optimizers/optimizer.h"
-	#include "optimizers/ts_optimizer.h"
 #endif
 
 // ==============
@@ -70,12 +60,11 @@ int main(int argc, char** argv) {
 	num_agents_ts = find_int_arg(argc, argv, "-nts", 8);
 
 	num_threads = find_int_arg(argc, argv, "-nthreads", 1);
-#ifdef USE_OMP
+
 	omp_set_dynamic(0);
 	omp_set_num_threads(num_threads);
 	std::cout << "MAIN: NUMBER OF THREADS " << omp_get_num_threads() << std::endl;
 	std::cout << "MAIN: MAX NUMBER OF THREADS " << omp_get_max_threads() << std::endl;
-#endif //USE_OMP
 
 	double min_find_tol = 1.0 * pow(10, -1.0 * find_int_arg(argc, argv, "-mtol", 8));
 	double unique_min_tol = 1.0 * pow(10, -1.0 * find_int_arg(argc, argv, "-utol", 6));
@@ -110,12 +99,10 @@ int main(int argc, char** argv) {
 
 		int num_threads_xtb = 1;
 
-#ifdef USE_OMP
 		num_threads_xtb = (int) omp_get_num_threads() / num_threads;
 		if (num_threads_xtb == 0) {
 			num_threads_xtb = 1;
 		}
-#endif //USE_OMP
 
 		XTBAdapter adapter = XTBAdapter("xtb", "input.xyz", "xtb.out", num_threads_xtb);
 		double* lb = get_lower_bounds(mol, 1.0);
@@ -162,18 +149,6 @@ int main(int argc, char** argv) {
 	}
 
 	std::cout << "Defined surface" << std::endl;
-
-// #ifdef USE_MPI
-// 	/////////////////////////////////////////////////////////////
-// 	// Init MPI
-// 	int num_procs, rank;
-// 	MPI_Init(&argc, &argv);
-// 	MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
-// 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-// 	init_mpi_structs ();
-// #endif
-
-#ifdef USE_MIN_FINDER
 
 	std::ofstream fsave("minima.txt");
 
@@ -226,10 +201,6 @@ int main(int argc, char** argv) {
 	}
 	delete[] min_agent_bases;
 
-#endif
-
-#ifdef USE_QHULL
-
 	int* outpairs = delaunay(minima);
 	int num_min = minima.size();
 
@@ -262,7 +233,6 @@ int main(int argc, char** argv) {
   	    }
 	}
 
-#endif
 #ifdef USE_MPI
 	MPI_Finalize();
 #endif
