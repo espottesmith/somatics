@@ -25,7 +25,7 @@ public:
 	double* calculate_gradient_external (double* position, std::string name_space);
 
 	double calculate_energy(double* position);
-	double calculate_gradient(double* position);
+	double* calculate_gradient(double* position);
 
 	XTBSurface(Molecule molecule_in, XTBAdapter adapter_in, double accuracy_in,
 			double* lower_bounds_in, double* upper_bounds_in);
