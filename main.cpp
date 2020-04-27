@@ -244,7 +244,9 @@ int main(int argc, char** argv) {
                     auto t_start_ts_find = std::chrono::steady_clock::now();
 	                ts_opt.run();
 	                auto t_end_ts_find = std::chrono::steady_clock::now();
-	                std::cout << i << " " << j << " " << k << ": " << (t_end_ts_find - t_start_ts_find) << std::endl;
+	                std::chrono::duration<double> diff_ts = t_end_ts_find - t_start_ts_find;
+					double time_ts_find = diff_ts.count();
+	                std::cout << i << " " << j << " " << k << ": " << time_ts_find << std::endl;
 	                if (ts_opt.all_converged) {
 	                    double* ts = ts_opt.find_ts();
 		                for (int d = 0; d < num_dim; d++) {
