@@ -171,7 +171,7 @@ double XTBAdapter::call_single_point(Molecule *mol, int threads, double accuracy
 	options.solvent[0] = 'w'; options.solvent[1] = 'a'; options.solvent[2] = 't';
 	options.solvent[3] = 'e'; options.solvent[4] = 'r'; options.solvent[5] = '\0';
 
-	GFN2_calculation(&num_atoms, atomic_numbers, &charge, &spin, coord, &options, nullptr,
+	GFN2_calculation(&num_atoms, atomic_numbers, &charge, &spin, coord, &options, output,
 			&energy, grad, dipole, q, dipm, qp, wbo);
 
 	return energy;
@@ -205,7 +205,7 @@ double* XTBAdapter::call_gradient(Molecule *mol, int threads, double accuracy, i
 	options.solvent[0] = 'w'; options.solvent[1] = 'a'; options.solvent[2] = 't';
 	options.solvent[3] = 'e'; options.solvent[4] = 'r'; options.solvent[5] = '\0';
 
-	GFN2_calculation(&num_atoms, atomic_numbers, &charge, &spin, coord, &options, nullptr,
+	GFN2_calculation(&num_atoms, atomic_numbers, &charge, &spin, coord, &options, output,
 			&energy, grad, dipole, q, dipm, qp, wbo);
 
 	return grad;

@@ -119,6 +119,7 @@ int main(int argc, char** argv) {
 		double* lb = get_lower_bounds(mol);
 		double* ub = get_upper_bounds(mol);
 		xtbsurf = XTBSurface(mol, adapter, 0.2, lb, ub, num_threads_xtb);
+
 		pes = &xtbsurf;
 
 		double energy = pes->calculate_energy(mol.get_coords());
