@@ -276,6 +276,8 @@ void init_mpi_structs () {
   {
     swarm_prop_t subswarm_prop;
     subswarm_prop.pos_best = new double[num_dim];
+
+    printf("HACK: NUM DIM = %i \n", num_dim);
     
     const int nitems = 4;
     int blocklengths[nitems] = {1, num_dim, 1, 1};
@@ -285,9 +287,9 @@ void init_mpi_structs () {
     int count = 0;
     MPI_Get_address(&subswarm_prop,                   offsets+count++);
     MPI_Get_address(&(subswarm_prop.id),              offsets+count++);
-    MPI_Get_address(subswarm_prop.pos_best,           offsets+count++);
+    MPI_Get_address(&(subswarm_prop.pos_best[0]),     offsets+count++);
     MPI_Get_address(&(subswarm_prop.fitness_best),    offsets+count++);
-    MPI_Get_address(&(subswarm_prop.radius_squared),  offsets+count++);
+    MPI_Get_address(&(subswarm_prop.radius_sq),       offsets+count++);
     base = offsets[0]; 
     for (int i=0; i < nitems; i++) { offsets[i] = MPI_Aint_diff(offsets[i], base); }
   

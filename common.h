@@ -13,7 +13,9 @@
 
 #include "pes/pes.h"
 
-#define DIST_LIM 1000000.00
+#define DIST_LIM       1000000.00
+#define FITNESS_LIM    1000000.00
+#define verbosity      0
 
 extern int num_dim;
 extern int num_agents_min_tot;
@@ -42,7 +44,8 @@ typedef struct swarm_prop_t {
   int id;                    // Swarm ID
   double* pos_best;          // Best position
   double fitness_best;       // Best fitness value
-  double radius_squared;     // Radius - squared
+  double radius_sq;          // Radius - squared
+  int num_agent;
 } swarm_prop_t;
 
 #ifdef USE_MPI

@@ -1,10 +1,10 @@
 .PHONY: execute clean
 
-ON_CORI           = TRUE
-USE_MPI           = FALSE
+ON_CORI           = FALSE
+USE_MPI           = TRUE
 USE_OMP           = FALSE
 USE_MIN_FINDER    = TRUE
-USE_TS_FINDER     = TRUE
+USE_TS_FINDER     = FALSE
 USE_QHULL         = FALSE
 USE_MOLECULE      = TRUE
 
