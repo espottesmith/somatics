@@ -45,4 +45,12 @@ public:
     Culot_Dive_Nguyen_Ghuysen ();
 };
 
+class Point_Sources: public PotentialEnergySurface {
+public:
+    double calculate_energy(double* position, std::string name_space);
+    double* calculate_gradient(double* position, std::string name_space);
+    Point_Sources (double* lower_bounds_in, double* upper_bounds_in);
+    Point_Sources ();
+};
+
 #endif //TEST_SURFACES_H

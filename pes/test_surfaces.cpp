@@ -134,3 +134,33 @@ Culot_Dive_Nguyen_Ghuysen::Culot_Dive_Nguyen_Ghuysen (double* lower_bounds_in, d
 
 Culot_Dive_Nguyen_Ghuysen::Culot_Dive_Nguyen_Ghuysen (): PotentialEnergySurface(){}
 
+
+//3D_Point_Sources
+double Point_Sources::calculate_energy(double* position, std::string name_space) {
+    double x = position[0];
+    double y = position[1];
+    double z = position[2];
+    
+    return -exp( -( pow((x + 1), 2) + pow(y, 2) + pow(z, 2) ) ) - exp( -( pow((x - 1), 2) + pow(y, 2) + pow(z, 2) ) );
+
+}
+
+double* Point_Sources::calculate_gradient(double* position, std::string name_space) {
+    double x = position[0];
+    double y = position[1];
+    double z = position[2];
+
+    double* gradient = new double[3];
+    gradient[0] = 2*(x-1)*exp( -( pow((x - 1), 2) + pow(y, 2) + pow(z, 2) ) ) + 2*(x+1)*exp( -( pow((x + 1), 2) + pow(y, 2) + pow(z, 2) ) );
+    gradient[1] = 2 * y * exp( -( pow((x - 1), 2) + pow(y, 2) + pow(z, 2) ) ) + 2 * y * exp( -( pow((x + 1), 2) + pow(y, 2) + pow(z, 2) ) );
+    gradient[2] = 2 * z * exp( -( pow((x - 1), 2) + pow(y, 2) + pow(z, 2) ) ) + 2 * z * exp( -( pow((x + 1), 2) + pow(y, 2) + pow(z, 2) ) );
+    return gradient;
+}
+
+Point_Sources::Point_Sources (double* lower_bounds_in, double* upper_bounds_in): PotentialEnergySurface(3, lower_bounds_in, upper_bounds_in){}
+
+Point_Sources::Point_Sources (): PotentialEnergySurface(){}
+
+
+
+
