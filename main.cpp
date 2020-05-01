@@ -254,6 +254,7 @@ int main(int argc, char** argv) {
 		                    std::cout << ts[d] << " ";
 		                }
 		                std::cout << std::endl;
+		                std::cout << std::endl;
 		                break;
 	                }
 	                std::cout << std::endl;
