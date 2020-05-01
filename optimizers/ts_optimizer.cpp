@@ -31,6 +31,9 @@ void TransitionStateOptimizer::update() {
 		history_hill_scores_one.push_back(hill_score_one);
 		history_hill_scores_two.push_back(hill_score_two);
 
+		history_average_positions_one.push_back(average_position_one);
+		history_average_positions_two.push_back(average_position_two);
+
 		for (a = 0; a < num_agents_ts; a++) {
 			hill_score_one += agents_one[a].get_hill_score() / (num_agents_ts * 2);
 			hill_score_two += agents_two[a].get_hill_score() / (num_agents_ts * 2);
@@ -324,8 +327,10 @@ double* TransitionStateOptimizer::find_ts() {
 	double min_grad_norm_two = std::numeric_limits<double>::infinity();
 	int starting_step_two = 0;
 
+	double dist_scale = distance(min_one, min_two, num_dim);
+
 	if (step_num < 6) {
-		// std::cout << "WARNING: TOO FEW STEPS FOR ADEQUATE ANALYSIS" << std::endl;
+		std::cout << "WARNING: TOO FEW STEPS FOR ADEQUATE ANALYSIS" << std::endl;
 		// Will almost definitely cause a segfault
 	} else {
 		// Average over 5 steps
@@ -341,13 +346,22 @@ double* TransitionStateOptimizer::find_ts() {
 			average_hill_score_one = average_of_array(hill_score_range_one, 5);
 			average_hill_score_two = average_of_array(hill_score_range_two, 5);
 
+			double dist_one_one = distance(history_average_positions_one[s], min_one, num_dim) / dist_scale;
+			double dist_one_two = distance(history_average_positions_one[s], min_two, num_dim) / dist_scale;
+			double dist_two_one = distance(history_average_positions_two[s], min_one, num_dim) / dist_scale;
+			double dist_two_two = distance(history_average_positions_two[s], min_two, num_dim) / dist_scale;
+
 			if (abs(average_hill_score_one) < min_average_one) {
-				min_average_one = abs(average_hill_score_one);
-				starting_step_one = s;
+				if (dist_one_one > 0.05 && dist_one_two > 0.05) {
+					min_average_one = abs(average_hill_score_one);
+					starting_step_one = s;
+				}
 			}
 			if (abs(average_hill_score_two) < min_average_two) {
-				min_average_two = abs(average_hill_score_two);
-				starting_step_two = s;
+				if (dist_two_one > 0.05 && dist_two_two > 0.05) {
+					min_average_two = abs(average_hill_score_two);
+					starting_step_two = s;
+				}
 			}
 		}
 	}
@@ -532,7 +546,10 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
 
     // Average position of swarms; used for scoring swarms
     average_position_one = vector_average(current_positions_one, num_dim);
+    history_average_positions_one.resize(0);
+
     average_position_two = vector_average(current_positions_two, num_dim);
+    history_average_positions_two.resize(0);
 
     // Gather energies and gradient norms
     for (a = 0; a < num_agents_ts; a++) {

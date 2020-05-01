@@ -30,6 +30,7 @@ private:
     double hill_score_one;
     double* hill_scores_one;
     std::vector<double> history_hill_scores_one;
+    std::vector<double*> history_average_positions_one;
 
     std::vector<TransitionStateAgent> agents_two;
     std::vector<double*> current_positions_two;
@@ -40,6 +41,7 @@ private:
     double hill_score_two;
     double* hill_scores_two;
     std::vector<double> history_hill_scores_two;
+    std::vector<double*> history_average_positions_two;
 
     // Score parameters
     double average_grad_norm_one;
