@@ -21,13 +21,6 @@ public:
     Halgren_Lipscomb ();
 
 };
-class Cerjan_Miller: public PotentialEnergySurface {
-public:
-    double calculate_energy(double* position, std::string name_space);
-    double* calculate_gradient(double* position, std::string name_space);
-    Cerjan_Miller (double* lower_bounds_in, double* upper_bounds_in);
-    Cerjan_Miller ();
-};
 
 class Quapp_Wolfe_Schlegel: public PotentialEnergySurface {
 public:
