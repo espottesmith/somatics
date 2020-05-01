@@ -73,6 +73,8 @@ private:
     int* ownership;
     int threads;
 
+    bool first;
+
 public:
 
 	bool all_converged;

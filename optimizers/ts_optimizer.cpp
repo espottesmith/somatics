@@ -277,7 +277,6 @@ void TransitionStateOptimizer::run() {
 		        // Print to file output
 
 		        if (step_num % save_freq == 0 && fsave.good()) {
-			    static bool first = true;
 
 			    if (first) {
 			        fsave << num_agents_ts * 2 << " ";
@@ -501,6 +500,7 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
     filename = filename_in;
 
     all_converged = false;
+    first = true;
 
     double upper_bound, lower_bound;
 
