@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <iostream>
 #include <fstream>
+#include <random>
 
 #ifdef USE_MPI
 #include <mpi.h>
