@@ -125,6 +125,7 @@ std::vector<double*> distance_matrix_to_cart_coords(double* distance_matrix, int
 	int i, j, k, l;
 	double d0, d1, d2, d3;
 	int start_coord;
+	double* atom_pos = new double[3];
 
 	i = 0;
 
@@ -132,17 +133,16 @@ std::vector<double*> distance_matrix_to_cart_coords(double* distance_matrix, int
 	cart_coords.resize(num_atoms);
 
 	// 0th atom always at the origin
-	double* atom_pos = new double[3];
-	atom_pos[0] = 0.0; atom_pos[1] = 0.0; atom_pos[2] = 0.0;
-	cart_coords[0] = atom_pos;
+	cart_coords[0] = new double[3];
+	cart_coords[0][0] = 0.0; cart_coords[0][1] = 0.0; cart_coords[0][2] = 0.0;
 
 	if (num_atoms == 1) {
 		return cart_coords;
 	}
 
 	// 1st atom defined only by distance to the first atom
-	atom_pos[0] = distance_matrix[0];
-	cart_coords[1] = atom_pos;
+	cart_coords[1] = new double[3];
+	cart_coords[1][0] = distance_matrix[0]; cart_coords[1][1] = 0.0; cart_coords[1][2] = 0.0;
 
 	j = 1;
 	if (num_atoms == 2) {
@@ -150,13 +150,16 @@ std::vector<double*> distance_matrix_to_cart_coords(double* distance_matrix, int
 	}
 
 	// If there are only three atoms total, then it doesn't matter what
+	cart_coords[2] = new double[3];
 	if (num_atoms == 3) {
 		d0 = distance_matrix[1];
 		d1 = distance_matrix[2];
 
 		atom_pos[0] = (d0 * d0 - d1 * d1) / (2 * distance_matrix[0]) + distance_matrix[0] / 2;
 		atom_pos[1] = sqrt(d0 * d0 - atom_pos[0] * atom_pos[0]);
-		cart_coords[2] = atom_pos;
+		cart_coords[2][0] = atom_pos[0];
+		cart_coords[2][1] = atom_pos[1];
+		cart_coords[2][2] = 0.0;
 
 		return cart_coords;
 
@@ -178,9 +181,12 @@ std::vector<double*> distance_matrix_to_cart_coords(double* distance_matrix, int
 		if (angle < min_angle) {
 			min_angle = angle;
 			k = a;
-			cart_coords[k] = atom_pos;
 		}
 	}
+	cart_coords[k] = new double[3];
+	cart_coords[k][0] = atom_pos[0];
+	cart_coords[k][1] = atom_pos[1];
+	cart_coords[k][2] = 0.0;
 
 	// Select 3rd atom that is not coplanar with atoms 0, 1, and 2
 	// If they're all more or less coplanar, then we'll try our best
@@ -220,7 +226,10 @@ std::vector<double*> distance_matrix_to_cart_coords(double* distance_matrix, int
 
 			if (bcd.determinant() != 0.0) {
 				l = a;
-				cart_coords[l] = atom_pos;
+				cart_coords[l] = new double[3];
+				cart_coords[l][0] = atom_pos[0];
+				cart_coords[l][1] = atom_pos[1];
+				cart_coords[l][2] = atom_pos[2];
 				break;
 			}
 		}
@@ -251,6 +260,8 @@ std::vector<double*> distance_matrix_to_cart_coords(double* distance_matrix, int
 	VectorXd x(3);
 	for (int a = 2; a < num_atoms; a++) {
 		if (a != k && a != l) {
+			cart_coords[a] = new double[3];
+
 			start_coord = a * (a - 1) / 2;
 			d0 = distance_matrix[start_coord];
 			d1 = distance_matrix[start_coord + 1];
