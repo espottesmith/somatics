@@ -100,7 +100,7 @@ class MinimaNicheOptimizer {
 		
   }
 
-  std::vector<double*> optimize (std::ofstream& fsave) {
+  std::vector<double*> optimize (std::ofstream& fsave, int num_threads) {
 
     std::vector<double*> minima;
 
@@ -112,7 +112,7 @@ class MinimaNicheOptimizer {
 
     double fitness_diff = -1.0;
 
-    omp_set_num_threads(64);
+    omp_set_num_threads(num_threads);
 
     for (int step = 0; (step < max_iter) && (fitness_diff > min_find_tol || fitness_diff <= 0.0); ++step) {
 
