@@ -180,3 +180,14 @@ double root_mean_square_deviation(double* a, double* b, int dimension) {
 		return sqrt(total / 2);
 	}
 }
+
+double angle_3d(double* a, double* b, double* c) {
+	double* ab = array_difference(a, b, 3);
+	double* bc = array_difference(b, c, 3);
+
+	double dotprod = dot_prod(ab, bc, 3);
+	double normab = array_norm(ab, 3);
+	double normbc = array_norm(bc, 3);
+
+	return acos(dotprod / (normab * normbc));
+}

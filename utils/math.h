@@ -25,4 +25,6 @@ double root_mean_square(double* a, int dimension);
 double mean_square_displacement(double* a, double* b, int dimension);
 double root_mean_square_deviation(double* a, double* b, int dimension);
 
+double angle_3d(double* a, double* b, double* c);
+
 #endif //MATH_H
