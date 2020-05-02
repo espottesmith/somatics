@@ -6,9 +6,13 @@
 #include <exception>
 #include <limits>
 
+#include <Eigen/Dense>
+
 #include "xyz.h"
 #include "../molecules/molecule.h"
 #include "math.h"
+
+using namespace Eigen;
 
 void write_molecule_to_xyz(Molecule* molecule, char const* filename) {
 	int num_atoms = molecule->get_num_atoms();
@@ -173,11 +177,113 @@ std::vector<double*> distance_matrix_to_cart_coords(double* distance_matrix, int
 		angle = angle_3d(cart_coords[0], cart_coords[1], atom_pos);
 		if (angle < min_angle) {
 			min_angle = angle;
-			cart_coords[2] = atom_pos;
 			k = a;
+			cart_coords[k] = atom_pos;
 		}
 	}
 
 	// Select 3rd atom that is not coplanar with atoms 0, 1, and 2
 	// If they're all more or less coplanar, then we'll try our best
+	MatrixXd bcd(3, 3);
+	bcd(0, 0) = cart_coords[j][0];
+	bcd(0, 1) = cart_coords[j][1];
+	bcd(0, 2) = cart_coords[j][2];
+	bcd(1, 0) = cart_coords[k][0];
+	bcd(1, 1) = cart_coords[k][1];
+	bcd(1, 2) = cart_coords[k][1];
+
+	if (k == 2) {
+		l = 3;
+	} else {
+		l = 2;
+	}
+
+	for (int a = 2; a < num_atoms; a++) {
+		if (a != k) {
+			start_coord = a * (a - 1) / 2;
+			d0 = distance_matrix[start_coord];
+			d1 = distance_matrix[start_coord + 1];
+			if (k < a) {
+				d2 = distance_matrix[start_coord + k];
+			} else {
+				double k_start_coord = k * (k - 1) / 2;
+				d2 = distance_matrix[k_start_coord + a];
+			}
+
+			atom_pos[0] = (d0 * d0 - d1 * d1) / (2 * cart_coords[j][0]) + cart_coords[j][0]/2;
+			atom_pos[1] = (d0 * d0 - d2 * d2 - pow(atom_pos[0] - cart_coords[j][0], 2) + pow(atom_pos[0] - cart_coords[k][0], 0)) / (2 * cart_coords[k][1]) + cart_coords[k][1]/2;
+			atom_pos[2] = sqrt(d0 * d0 - atom_pos[0] * atom_pos[0] - atom_pos[1] * atom_pos[1]);
+
+			bcd(2, 0) = atom_pos[0];
+			bcd(2, 1) = atom_pos[1];
+			bcd(2, 2) = atom_pos[2];
+
+			if (bcd.determinant() != 0.0) {
+				l = a;
+				cart_coords[l] = atom_pos;
+				break;
+			}
+		}
+	}
+
+	if (num_atoms == 4) {
+		return cart_coords;
+	}
+
+	// Now that we've found our four non-coplanar reference atoms, everything else is straightforward
+	MatrixXd A(3, 3);
+	A(0, 0) = -2 * cart_coords[j][0];
+	A(0, 1) = -2 * cart_coords[j][1];
+	A(0, 2) = -2 * cart_coords[j][2];
+
+	A(1, 0) = -2 * cart_coords[k][0];
+	A(1, 1) = -2 * cart_coords[k][1];
+	A(1, 2) = -2 * cart_coords[k][2];
+
+	A(2, 0) = -2 * cart_coords[l][0];
+	A(2, 1) = -2 * cart_coords[l][1];
+	A(2, 2) = -2 * cart_coords[l][2];
+
+	double normj = array_norm(cart_coords[j], 3);
+	double normk = array_norm(cart_coords[k], 3);
+	double norml = array_norm(cart_coords[l], 3);
+
+	VectorXd x(3);
+	for (int a = 2; a < num_atoms; a++) {
+		if (a != k && a != l) {
+			start_coord = a * (a - 1) / 2;
+			d0 = distance_matrix[start_coord];
+			d1 = distance_matrix[start_coord + 1];
+			if (k < a) {
+				d2 = distance_matrix[start_coord + k];
+			} else {
+				double k_start_coord = k * (k - 1) / 2;
+				d2 = distance_matrix[k_start_coord + a];
+			}
+			if (l < a) {
+				d3 = distance_matrix[start_coord + l];
+			} else {
+				double l_start_coord = l * (l - 1) / 2;
+				d3 = distance_matrix[l_start_coord + a];
+			}
+
+			VectorXd b(3);
+			b(0) = -1 * normj * normj - (d0 * d0 - d1 * d1);
+			b(1) = -1 * normk * normk - (d0 * d0 - d2 * d2);
+			b(2) = -1 * norml * norml - (d0 * d0 - d3 * d3);
+
+			x = A.inverse() * b;
+			cart_coords[a][0] = x(0);
+			cart_coords[a][1] = x(1);
+			cart_coords[a][2] = x(2);
+		}
+	}
+
+	// Compare distance matrix of calculated coordinates with original distance matrix
+	// If norm of difference is high, flag result
+	double* this_dist_mat = cart_coords_to_distance_matrix(cart_coords, num_atoms);
+	double rel_norm = array_norm(array_difference(distance_matrix, this_dist_mat, num_coords), num_coords) / array_norm(this_dist_mat, num_coords);
+	std::cout << "Relative norm of distance " << rel_norm << std::endl;
+
+	return cart_coords;
 }
