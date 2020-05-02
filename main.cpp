@@ -33,7 +33,7 @@
 
 #ifdef USE_MIN_FINDER
 	#include "swarms/swarm.h"
-	#include "optimizers/optimizer.h"
+	#include "optimizers/min_optimizer.h"
 	#include "optimizers/ts_optimizer.h"
 #endif
 
@@ -231,7 +231,7 @@ int main(int argc, char** argv) {
 	init_agents(min_agent_bases, num_agents_min, region);
 	std::cout << "Initialized agents" << std::endl;
 
-	int max_subswarm_size = 8;
+	int max_subswarm_size = 16;
 	double var_threshold = 0.0001;
 
 	MinimaNicheSwarm swarm(pes, min_agent_bases, num_agents_min,

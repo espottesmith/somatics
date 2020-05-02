@@ -237,10 +237,9 @@ void MinimaNicheSwarm::evolve_subswarms () {
 #ifdef USE_MPI
   update_swarm_register_mpi ();
 #endif
-  
-  printf ("number of subswarms = %i \n", num_subswarm);
 
-  /* printf ("length check: %i %i %i %i \n", subswarms.size(), fitness_best_globals.size(), pos_best_globals.size(), swarm_rsq.size() ); */
+  if (verbosity > 1)
+    printf ("number of subswarms = %i \n", num_subswarm);
 
   for (int i = 0; i < num_subswarm; i++) {
 
@@ -280,7 +279,7 @@ void MinimaNicheSwarm::evolve_subswarms () {
 void MinimaNicheSwarm::merge_subswarms () {
 
 #ifdef USE_MPI
-  merge_subswarms_mpi();
+  // merge_subswarms_mpi();
 #endif
 
   std::vector<bool> merged;
@@ -320,7 +319,8 @@ void MinimaNicheSwarm::merge_subswarms () {
 	  num_min_agent_combine <= max_subswarm_size      ) {
 
 	/* printf("R sum = %f \n", swarm_rsq[p] + swarm_rsq[q]); */
-	printf("merging subswarms %i & %i \n", p, q);
+	if (verbosity > 1)
+	  printf("merging subswarms %i & %i \n", p, q);
 
 	for (int i = 0; i < subswarms[q].num_min_agent; i++) {
 
@@ -411,7 +411,8 @@ void MinimaNicheSwarm::add_agents_subswarms () {
       if (dist_sq < swarm_rsq[q] && !joined[p]) {
 
 	/* printf("distance^2 = %f, radius^2 = %f \n", dist_sq, swarm_rsq[q]); */
-	printf("adding agent %i to subswarm %i \n", p, q);
+	if (verbosity > 1)
+	  printf("adding agent %i to subswarm %i \n", p, q);
 
 	/* for (int d=0; d<num_dim; d++) { agents[p].base.vel[d] = 0.0; } */
 	/* for (int i=0; i<subswarms[q].num_min_agent; i++) { */
@@ -593,7 +594,8 @@ void MinimaNicheSwarm::form_subswarms () {
 
   for (int i = 0; i < idx_to_form.size(); i++) {
 
-    /* printf("forming new subswarm \n"); */
+    if (verbosity > 1)
+      printf("forming new subswarm \n");
 
     int num_subswarm_agent;
     double min_dist_sq;
@@ -658,7 +660,7 @@ void MinimaNicheSwarm::form_subswarms () {
       
 	num_subswarm++;
       
-	printf("formed new subswarm \n");
+	// printf("formed new subswarm \n");
 
       }
 

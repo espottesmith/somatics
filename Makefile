@@ -36,8 +36,8 @@ OBJS = main.o math.o test_surfaces.o common.o
 EXTERN = 
 
 ifeq ($(USE_MIN_FINDER), TRUE)
-DEPS += swarms/swarm.h optimizers/optimizer.h
-OBJS += minima_agent.o swarm.o
+DEPS += agents/minima_agent.h swarms/swarm.h optimizers/min_optimizer.h
+OBJS += minima_agent.o swarm.o min_optimizer.o
 DEFINES	+= -DUSE_MIN_FINDER=$(USE_MIN_FINDER)
 endif
 
@@ -92,6 +92,10 @@ swarm.o: pes/pes.h swarms/swarm.h swarms/swarm.cpp swarms/swarm_mpi.cpp
 	@echo "Creating swarm object..."
 	${CXX} ${CFLAGS} -c swarms/swarm.cpp swarms/swarm_mpi.cpp $(DEFINES)
 
+min_optimizer.o: optimizers/min_optimizer.h optimizers/min_optimizer.cpp
+	@echo "Creating min optimizer object..."
+	${CXX} ${CFLAGS} -c optimizers/min_optimizer.cpp $(DEFINES)
+
 ifeq ($(USE_TS_FINDER), TRUE)
 ts_agent.o: pes/pes.h utils/math.h agents/ts_agent.h agents/ts_agent.cpp
 	@echo "Creating TS agent object..."
@@ -128,4 +132,4 @@ endif
 
 clean:
 	@echo "Cleaning up"
-	rm execute main.o math.o test_surfaces.o swarm.o swarm_mpi.o minima_agent.o ts_agent.o ts_optimizer.o molecule.o xyz.o common.o xtb_adapter.o xtb_surface.o voronoi.o
+	rm execute main.o math.o test_surfaces.o min_optimizer.o swarm.o swarm_mpi.o minima_agent.o ts_agent.o ts_optimizer.o molecule.o xyz.o common.o xtb_adapter.o xtb_surface.o voronoi.o

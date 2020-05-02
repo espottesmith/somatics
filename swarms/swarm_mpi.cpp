@@ -124,17 +124,17 @@ void MinimaNicheSwarm::update_swarm_register_mpi () {
     for (int i = 0; i < subswarms[p].num_ids; i++) {
       int q = subswarms[p].swarm_ids[i];
       if (swarm_register[q].fitness_best != -1.0 && swarm_register[q].radius_sq != -1.0) {
-	if (swarm_register[q].fitness_best < fitness_best_globals[p] &&
-	    fitness_best_globals[p] != -1.0) {
-	  fitness_best_globals[p] = swarm_register[q].fitness_best;
-	  for (int d=0; d<num_dim; d++) {
-	    pos_best_globals[p][d] = swarm_register[q].pos_best[d];
-	  }
-	}
-	if (swarm_register[q].radius_sq > swarm_rsq[p] &&
-	    swarm_rsq[p] != -1.0) {
-	  swarm_rsq[p] = swarm_register[q].radius_sq;
-	}
+  	if (swarm_register[q].fitness_best < fitness_best_globals[p] &&
+  	    fitness_best_globals[p] != -1.0) {
+  	  fitness_best_globals[p] = swarm_register[q].fitness_best;
+  	  for (int d=0; d<num_dim; d++) {
+  	    pos_best_globals[p][d] = swarm_register[q].pos_best[d];
+  	  }
+  	}
+  	if (swarm_register[q].radius_sq > swarm_rsq[p] &&
+  	    swarm_rsq[p] != -1.0) {
+  	  swarm_rsq[p] = swarm_register[q].radius_sq;
+  	}
       }
     }
   }
@@ -194,7 +194,8 @@ void MinimaNicheSwarm::add_agents_subswarms_mpi () {
 
       if (dist_sq < swarm_register[q].radius_sq && !joined[p]) {
 
-	printf("adding agent %i to subswarm %i \n", p, q);
+	if (verbosity > 1)
+	  printf("adding agent %i to subswarm %i \n", p, q);
 
 	agent_base_t* agent_subswarm_bases = new agent_base_t[1];
 	agent_subswarm_bases[0] = agents[p].base;
