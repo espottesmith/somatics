@@ -189,7 +189,7 @@ int main(int argc, char** argv) {
 
 	auto t_start_min_find = std::chrono::steady_clock::now();
 
-	std::vector<double*> minima = optimizer.optimize(fsave);
+	std::vector<double*> minima = optimizer.optimize(fsave, num_threads);
 	auto t_end_min_find = std::chrono::steady_clock::now();
 	std::chrono::duration<double> diff = t_end_min_find - t_start_min_find;
 	double time_min_find = diff.count();
