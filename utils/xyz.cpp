@@ -146,7 +146,7 @@ std::vector<double*> distance_matrix_to_cart_coords(double* distance_matrix, int
 
 	j = 1;
 	if (num_atoms == 2) {
-		return card_coords;
+		return cart_coords;
 	}
 
 	// If there are only three atoms total, then it doesn't matter what
@@ -206,7 +206,7 @@ std::vector<double*> distance_matrix_to_cart_coords(double* distance_matrix, int
 			if (k < a) {
 				d2 = distance_matrix[start_coord + k];
 			} else {
-				double k_start_coord = k * (k - 1) / 2;
+				int k_start_coord = k * (k - 1) / 2;
 				d2 = distance_matrix[k_start_coord + a];
 			}
 
@@ -257,13 +257,13 @@ std::vector<double*> distance_matrix_to_cart_coords(double* distance_matrix, int
 			if (k < a) {
 				d2 = distance_matrix[start_coord + k];
 			} else {
-				double k_start_coord = k * (k - 1) / 2;
+				int k_start_coord = k * (k - 1) / 2;
 				d2 = distance_matrix[k_start_coord + a];
 			}
 			if (l < a) {
 				d3 = distance_matrix[start_coord + l];
 			} else {
-				double l_start_coord = l * (l - 1) / 2;
+				int l_start_coord = l * (l - 1) / 2;
 				d3 = distance_matrix[l_start_coord + a];
 			}
 

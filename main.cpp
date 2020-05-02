@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
 		coord_vec[a] = mol.get_atom_position(a);
 	}
 
-	double* distance_matrix = cart_coords_to_distance_matrix(coords, num_atoms);
+	double* distance_matrix = cart_coords_to_distance_matrix(coord_vec, num_atoms);
 	int num_coords = (num_atoms * (num_atoms - 1)) / 2;
 	for (int c = 0; c < num_coords; c++) {
 		std::cout << distance_matrix[c] << " ";

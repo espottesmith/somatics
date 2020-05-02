@@ -36,7 +36,7 @@ OBJS += ts_agent.o ts_optimizer.o
 
 EXTERN += -fopenmp
 LIBSCIROOT = /opt/cray/pe/libsci/19.06.1/GNU/8.1/x86_64
-CFLAGS += -I$(LIBSCIROOT)/include -I$(EIGEN3_DIR)/include -O3 -march=knl -fopenmp
+CFLAGS += -I$(LIBSCIROOT)/include -I$(EIGEN3_DIR)/include/eigen3/ -O3 -march=knl -fopenmp
 
 DEPS += voronoi/voronoi.h 
 OBJS += voronoi.o
