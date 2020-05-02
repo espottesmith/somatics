@@ -87,7 +87,6 @@ int main(int argc, char** argv) {
 
 	Muller_Brown mbsurf;
 	Halgren_Lipscomb hlsurf;
-	Cerjan_Miller cmsurf;
 	Quapp_Wolfe_Schlegel qwssurf;
 	Culot_Dive_Nguyen_Ghuysen cdng;
 
