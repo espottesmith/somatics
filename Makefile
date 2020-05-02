@@ -2,11 +2,11 @@
 
 ON_CORI           = FALSE
 USE_MPI           = TRUE
-USE_OMP           = FALSE
+USE_MOLECULE      = FALSE
+
 USE_MIN_FINDER    = TRUE
 USE_TS_FINDER     = FALSE
 USE_QHULL         = FALSE
-USE_MOLECULE      = TRUE
 
 ifeq ($(USE_MPI), TRUE)
 CXX = mpic++
@@ -24,11 +24,9 @@ CFLAGS += -I$(MPIDIR)
 endif
 endif
 
-ifeq ($(USE_QHULL), TRUE)
 ifeq ($(ON_CORI), TRUE)
 QHULLDIR=/global/homes/c/cmcc/.local
 CFLAGS += -I$(QHULLDIR)/include
-endif
 endif
 
 DEPS = main.cpp common.h utils/math.h pes/pes.h pes/test_surfaces.h
@@ -47,10 +45,9 @@ OBJS += ts_agent.o ts_optimizer.o
 DEFINES	+= -DUSE_TS_FINDER=$(USE_TS_FINDER)
 endif
 
-ifeq ($(USE_OMP), TRUE)
 EXTERN += -fopenmp
-DEFINES += -DUSE_OMP=$(USE_OMP)
-endif
+LIBSCIROOT = /opt/cray/pe/libsci/19.06.1/GNU/8.1/x86_64
+CFLAGS += -I$(LIBSCIROOT)/include -O3 -march=knl -fopenmp
 
 ifeq ($(USE_QHULL), TRUE)
 DEPS += voronoi/voronoi.h 
@@ -84,6 +81,7 @@ test_surfaces.o: pes/pes.h pes/test_surfaces.h pes/test_surfaces.cpp
 	@echo "Creating test surfaces object..."
 	${CXX} ${CFLAGS} -c pes/test_surfaces.cpp
 
+ifeq ($(USE_MIN_FINDER), TRUE)
 minima_agent.o: pes/pes.h agents/minima_agent.h agents/minima_agent.cpp
 	@echo "Creating minima agent object..."
 	${CXX} ${CFLAGS} -c agents/minima_agent.cpp $(DEFINES)
@@ -95,6 +93,7 @@ swarm.o: pes/pes.h swarms/swarm.h swarms/swarm.cpp swarms/swarm_mpi.cpp
 min_optimizer.o: optimizers/min_optimizer.h optimizers/min_optimizer.cpp
 	@echo "Creating min optimizer object..."
 	${CXX} ${CFLAGS} -c optimizers/min_optimizer.cpp $(DEFINES)
+endif
 
 ifeq ($(USE_TS_FINDER), TRUE)
 ts_agent.o: pes/pes.h utils/math.h agents/ts_agent.h agents/ts_agent.cpp
@@ -132,4 +131,4 @@ endif
 
 clean:
 	@echo "Cleaning up"
-	rm execute main.o math.o test_surfaces.o min_optimizer.o swarm.o swarm_mpi.o minima_agent.o ts_agent.o ts_optimizer.o molecule.o xyz.o common.o xtb_adapter.o xtb_surface.o voronoi.o
+	rm execute *.o

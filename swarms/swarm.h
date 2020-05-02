@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <functional>
+#include <omp.h>
 
 #include "../pes/pes.h"
 #include "../agents/minima_agent.h"
@@ -93,6 +94,7 @@ class MinimaNicheSwarm : public MinimaSwarm {
   void merge_subswarms ();
   void add_agents_subswarms ();
   void form_subswarms ();
+
 #ifdef USE_MPI
   void update_swarm_register_mpi ();
   void merge_subswarms_mpi ();
@@ -104,7 +106,7 @@ class MinimaNicheSwarm : public MinimaSwarm {
 				  std::vector< int > swarm_ids,
 				  int size_to_form );
 #endif
-  
+
 };
 
 

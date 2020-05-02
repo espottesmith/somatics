@@ -34,22 +34,12 @@ void MinimaOptimizer::optimize (std::ofstream& fsave) {
   int num_min_agent = swarm.num_min_agent;
   double fitness_diff = -1.0;
 
-#ifdef USE_OMP
-  //TODO: Fix
-  // int num_threads = omp_get_max_threads();
-  int num_threads = 0;
+// #ifdef USE_OMP
   omp_set_num_threads(num_threads);
-  std::cout << "deploying " << num_threads << " threads" << std::endl;
-#pragma omp parallel default(shared)
-#endif
+// #endif
+  
   {
 
-#ifdef USE_OMP
-    //TODO: Fix
-    // int tid = omp_get_thread_num();
-    int tid = 0;
-    std::cout << "thread " << tid << std::endl;
-#endif
     for (int step = 0; (step < max_iter) && (fitness_diff > min_find_tol || fitness_diff <= 0.0); ++step) {
 
       fitness_diff = fitness_best_global;
@@ -60,9 +50,7 @@ void MinimaOptimizer::optimize (std::ofstream& fsave) {
       fitness_diff = abs( (fitness_diff - fitness_best_global) / fitness_diff );
 
       // Save state if necessary
-#ifdef USE_OMP
-#pragma omp master
-#endif
+
       if (fsave.good() && (step % savefreq) == 0) {
 	agent_base_t* agent_bases = new agent_base_t[num_min_agent];
 	for (int p=0; p<num_min_agent; p++) { agent_bases[p] = swarm.agents[p].base; }

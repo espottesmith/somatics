@@ -1,6 +1,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstring>
+#include <string.h>
 #include <fstream>
 #include <iostream>
 #include <random>
@@ -8,33 +9,29 @@
 #include <utility>
 
 #include "common.h"
-
-#ifdef USE_MPI
-	#include <mpi.h>
-#endif
-
-#ifdef USE_OMP
-	#include <omp.h>
-#endif
-
-#ifdef USE_QHULL
-	#include "voronoi/voronoi.h"
-#endif
-
 #include "pes/pes.h"
 #include "pes/test_surfaces.h"
-
-#ifdef USE_MOLECULE
-	#include "adapters/xtb_adapter.h"
-	#include "utils/xyz.h"
-	#include "molecules/molecule.h"
-	#include "pes/xtb_surface.h"
+#ifdef USE_MIN_FINDER
+#include "swarms/swarm.h"
+#include "optimizers/min_optimizer.h"
+#endif
+#ifdef USE_TS_FINDER
+#include "optimizers/ts_optimizer.h"
+#endif
+#ifdef USE_QHULL
+#include "voronoi/voronoi.h"
 #endif
 
-#ifdef USE_MIN_FINDER
-	#include "swarms/swarm.h"
-	#include "optimizers/min_optimizer.h"
-	#include "optimizers/ts_optimizer.h"
+#include <omp.h>
+#ifdef USE_MPI
+#include <mpi.h>
+#endif
+
+#ifdef USE_MOLECULE
+#include "adapters/xtb_adapter.h"
+#include "utils/xyz.h"
+#include "molecules/molecule.h"
+#include "pes/xtb_surface.h"
 #endif
 
 // ==============
@@ -44,6 +41,7 @@
 int num_agents_min_tot;
 int num_agents_ts;
 int num_dim;
+int num_threads;
 
 #ifdef USE_MPI
 int num_procs, mpi_rank;
@@ -71,7 +69,12 @@ int main(int argc, char** argv) {
 	num_agents_min_tot = find_int_arg(argc, argv, "-nmin", 1000);
 	num_agents_ts = find_int_arg(argc, argv, "-nts", 8);
 
-	int num_threads = find_int_arg(argc, argv, "-nthreads", 1);
+	num_threads = find_int_arg(argc, argv, "-nthreads", 1);
+
+	omp_set_dynamic(0);
+	omp_set_num_threads(num_threads);
+	std::cout << "MAIN: NUMBER OF THREADS " << omp_get_num_threads() << std::endl;
+	std::cout << "MAIN: MAX NUMBER OF THREADS " << omp_get_max_threads() << std::endl;
 
 	double min_find_tol = 1.0 * pow(10, -1.0 * find_int_arg(argc, argv, "-mtol", 8));
 	double unique_min_tol = 1.0 * pow(10, -1.0 * find_int_arg(argc, argv, "-utol", 6));
@@ -86,42 +89,43 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	Molecule mol;
-
 	PotentialEnergySurface* pes;
 	double* lb;
 	double* ub;
-	
+
+#ifdef USE_MOLECULE
 	XTBSurface xtbsurf;
+#endif
 
 	Muller_Brown mbsurf;
 	Halgren_Lipscomb hlsurf;
-	Cerjan_Miller cmsurf;
 	Quapp_Wolfe_Schlegel qwssurf;
 	Culot_Dive_Nguyen_Ghuysen cdng;
 
 	if (molfile != nullptr) {
-		mol = xyz_to_molecule(molfile);
-		std::cout << "Made molecule" << std::endl;
+
+#ifdef USE_MOLECULE
+		Molecule mol = xyz_to_molecule(molfile);
 
 		num_dim = mol.get_num_atoms() * 3;
 
 		int num_threads_xtb = 1;
 
-#ifdef USE_OMP
 		num_threads_xtb = (int) omp_get_num_threads() / num_threads;
 		if (num_threads_xtb == 0) {
 			num_threads_xtb = 1;
 		}
-#endif
 
 		XTBAdapter adapter = XTBAdapter("xtb", "input.xyz", "xtb.out", num_threads_xtb);
+
 		lb = new double[num_dim];
 		ub = new double[num_dim];
 	        lb = get_lower_bounds(mol, 1.0);
 	        ub = get_upper_bounds(mol, 1.0);
+
 		xtbsurf = XTBSurface(mol, adapter, 0.2, lb, ub);
 		pes = &xtbsurf;
+#endif
 
 	} else if (surf_name != nullptr) {
 		num_dim = 2;
@@ -168,7 +172,6 @@ int main(int argc, char** argv) {
 	std::cout << "Defined surface" << std::endl;
 
 #ifdef USE_MPI
-	/////////////////////////////////////////////////////////////
 	// Init MPI
 	MPI_Init(&argc, &argv);
 	MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
@@ -177,7 +180,6 @@ int main(int argc, char** argv) {
 #endif
 
 #ifdef USE_MIN_FINDER
-
 #ifdef USE_MPI
 	std::string filename = "minima" + std::to_string(mpi_rank) + ".txt";
 	std::ofstream fsave(filename);
@@ -224,6 +226,7 @@ int main(int argc, char** argv) {
 	}
 	std::cout << "Defined region" << std::endl;
 
+
 	double inertia = 0.5;
 	double cognit  = 1.0;
 	double social  = 2.0;
@@ -237,16 +240,14 @@ int main(int argc, char** argv) {
 	MinimaNicheSwarm swarm(pes, min_agent_bases, num_agents_min,
 			       inertia, cognit, social,
 			       max_subswarm_size, 3, var_threshold);
-	// MinimaSwarm swarm(pes, min_agent_bases, num_agents_min, inertia, cognit, social);
 	std::cout << "Defined swarm" << std::endl;
-	
+
 	MinimaNicheOptimizer optimizer (swarm, min_find_tol, unique_min_tol, max_iter, savefreq);
-	// MinimaOptimizer optimizer (swarm, min_find_tol, max_iter, savefreq);
 	std::cout << "Defined optimizer" << std::endl;
 
 	auto t_start_min_find = std::chrono::steady_clock::now();
 
-	std::vector<double*> minima = optimizer.optimize(fsave);
+	std::vector<double*> minima = optimizer.optimize(fsave, num_threads);
 	
 	auto t_end_min_find = std::chrono::steady_clock::now();
 	std::chrono::duration<double> diff = t_end_min_find - t_start_min_find;
@@ -258,32 +259,42 @@ int main(int argc, char** argv) {
 		fsave.close();
 	}
 	delete[] min_agent_bases;
-
 #endif
 
 #ifdef USE_QHULL
-
 	int* outpairs = delaunay(minima);
 	int num_min = minima.size();
 
 	for (int i = 0; i < num_min; i++) {
   	    for (int j = 0; j < i; j++) {
   	    	if (outpairs[i * num_min + j] == 1) {
-  	    		TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes, minima[i], minima[j], savefreq, "ts.txt");
-  	    		ts_opt.run();
-  	    		double* ts = ts_opt.find_ts();
-  	    		for (int d = 0; d < num_dim; d++) {
-  	    			std::cout << ts[d] << " ";
+  	    		for (int k = 0; k < 5; k++) {
+  	    			std::string filestring = "ts" + std::to_string(i) + "_" + std::to_string(j) + "_" + std::to_string(k) + ".txt";
+	                char* filename = strdup(filestring.c_str());
+                    TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes,
+                    		minima[i], minima[j], savefreq, filename);
+                    auto t_start_ts_find = std::chrono::steady_clock::now();
+	                ts_opt.run();
+	                auto t_end_ts_find = std::chrono::steady_clock::now();
+	                std::chrono::duration<double> diff_ts = t_end_ts_find - t_start_ts_find;
+					double time_ts_find = diff_ts.count();
+	                std::cout << i << " " << j << " " << k << ": " << time_ts_find << std::endl;
+	                std::cout << ts_opt.get_step_num() << std::endl;
+	                if (ts_opt.all_converged) {
+	                    double* ts = ts_opt.find_ts();
+		                for (int d = 0; d < num_dim; d++) {
+		                    std::cout << ts[d] << " ";
+		                }
+		                std::cout << std::endl;
+		                break;
+	                }
+	                std::cout << std::endl;
   	    		}
-  	    		std::cout << std::endl;
   	    	}
   	    }
 	}
 
-#endif
-
 #ifdef USE_MPI
 	MPI_Finalize();
 #endif
-
 }

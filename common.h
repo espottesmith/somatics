@@ -21,6 +21,7 @@
 extern int num_dim;
 extern int num_agents_min_tot;
 extern int num_agents_ts;
+extern int num_threads;
 
 #ifdef USE_MPI
 extern int mpi_rank;

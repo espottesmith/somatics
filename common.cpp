@@ -132,7 +132,7 @@ void get_indices (int* indices, int* sizes, int n, int num_dimensions) {
 void init_agents(agent_base_t* agent_bases, int num_agent_bases, region_t region) {
 
 	std::random_device rd;
-	std::mt19937 gen(rd());
+	std::mt19937 gen(2);
 
 	int lengths[num_dim];
 	factor(lengths, num_agent_bases, num_dim);
@@ -276,8 +276,6 @@ void init_mpi_structs () {
   {
     swarm_prop_t subswarm_prop;
     subswarm_prop.pos_best = new double[num_dim];
-
-    printf("HACK: NUM DIM = %i \n", num_dim);
     
     const int nitems = 4;
     int blocklengths[nitems] = {1, num_dim, 1, 1};

@@ -77,16 +77,17 @@ MinimaSwarm::MinimaSwarm (PotentialEnergySurface* pot_energy_surf_in,
 }
 
 void MinimaSwarm::update_fitnesses (double& fitness_best_global, std::vector<double> &pos_best_global) {
-#ifdef USE_OMP
-  //TODO: REPLACE
-  // int tid =omp_get_num_threads();
-  int tid = 0;
-#endif
-  for (int p = 0; p < num_min_agent; p++) {
+#pragma omp parallel default(shared)
+  {
+#pragma omp for
+    for (int p = 0; p < num_min_agent; p++) {
+      agents[p].fitness_calc(pot_energy_surf);
+    }
+  }
 
-    agents[p].fitness_calc(pot_energy_surf);
-            
+  for (int p = 0; p < num_min_agent; p++) {
     if ( agents[p].base.fitness < fitness_best_global ||  fitness_best_global == -1.0 ) {
+      index_best = p;
       for (int d=0; d<num_dim; d++) {
 	pos_best_global[d] = agents[p].base.pos[d];
       }
@@ -101,10 +102,15 @@ void MinimaSwarm::update_fitnesses_gcpso (double& fitness_best_global, std::vect
 
   double fitness_best_global_old = fitness_best_global;
 
+#pragma omp parallel default(shared)
+  {
+#pragma omp for
+    for (int p = 0; p < num_min_agent; p++) {
+      agents[p].fitness_calc(pot_energy_surf);
+    }
+  }
+
   for (int p=0; p<num_min_agent; p++) {
-
-    agents[p].fitness_calc(pot_energy_surf);
-
     if ( agents[p].base.fitness < fitness_best_global ||  fitness_best_global == -1.0 ) {
       index_best = p;
       for (int d=0; d<num_dim; d++) {
@@ -138,35 +144,41 @@ void MinimaSwarm::update_fitnesses_gcpso (double& fitness_best_global, std::vect
 }
 
 void MinimaSwarm::update_velocities (std::vector< double > pos_best_global) {
-
-  for (int p=0; p<num_min_agent; p++) {
-    agents[p].update_velocity(pos_best_global);
+#pragma omp parallel default(shared)
+  {
+#pragma omp for
+    for (int p = 0; p < num_min_agent; p++) {
+      agents[p].update_velocity(pos_best_global);
+    }
   }
 
 }
 
 void MinimaSwarm::update_velocities_gcpso (std::vector< double > pos_best_global) {
-
-  agents[index_best].update_velocity_best(pos_best_global, rho);
-
-  for (int p=0; p<index_best; p++) {
-    agents[p].update_velocity(pos_best_global);
+#pragma omp parallel default(shared)
+  {
+#pragma omp for
+    for (int p = 0; p < num_min_agent; p++) {
+      if (p == index_best) {
+        agents[index_best].update_velocity_best(pos_best_global, rho);
+      }
+      else {
+	agents[p].update_velocity(pos_best_global);
+      }
+    }
   }
-
-  for (int p=index_best+1; p<num_min_agent; p++) {
-    agents[p].update_velocity(pos_best_global);
-  }
-
 }
 
 void MinimaSwarm::move_swarm () {
-
-  for (int p=0; p<num_min_agent; p++) {
-    agents[p].update_position(region);
+#pragma omp parallel default(shared)
+  {
+#pragma omp for
+    for (int p = 0; p < num_min_agent; p++) {
+      agents[p].update_position(region);
+    }
   }
 
 }
-
 
 MinimaNicheSwarm::MinimaNicheSwarm (PotentialEnergySurface* pot_energy_surf_in,
 				    agent_base_t* agent_bases, int num_min_agent_in,
