@@ -15,6 +15,8 @@
 #include "../common.h"
 #include "../pes/pes.h"
 
+#ifdef USE_MPI
+
 void MinimaSwarm::add_swarm_id (int id) {
   bool belongs = false;
   for (int i=0; i<num_ids; i++) {
@@ -375,3 +377,5 @@ void MinimaNicheSwarm::form_subswarm_reduce_mpi ( std::vector< std::vector < map
   /* /////////////////////////////////////////////////// */
 
 }
+
+#endif

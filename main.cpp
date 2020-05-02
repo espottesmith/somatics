@@ -144,12 +144,6 @@ int main(int argc, char** argv) {
 			ub[0] = 4.0; ub[1] = 4.0;
 			hlsurf = Halgren_Lipscomb(lb, ub);
 			pes = &hlsurf;
-		} else if (surface == "Cerjan_Milller") {
-		        lb = new double[num_dim]; ub = new double[num_dim];
-		        lb[0] = -2.5; lb[1] = -1.5;
-			ub[0] =  2.5; ub[1] =  1.5;
-			cmsurf = Cerjan_Miller(lb, ub);
-			pes = &cmsurf;
 		} else if (surface == "Quapp_Wolfe_Schlegel") {
 		        lb = new double[num_dim]; ub = new double[num_dim];
 		        lb[0] = -2.0; lb[1] = -2.0;
@@ -247,7 +241,7 @@ int main(int argc, char** argv) {
 
 	auto t_start_min_find = std::chrono::steady_clock::now();
 
-	std::vector<double*> minima = optimizer.optimize(fsave, num_threads);
+	std::vector<double*> minima = optimizer.optimize(fsave);
 	
 	auto t_end_min_find = std::chrono::steady_clock::now();
 	std::chrono::duration<double> diff = t_end_min_find - t_start_min_find;
@@ -264,7 +258,9 @@ int main(int argc, char** argv) {
 #ifdef USE_QHULL
 	int* outpairs = delaunay(minima);
 	int num_min = minima.size();
+#endif
 
+#ifdef USE_TS_FINDER
 	for (int i = 0; i < num_min; i++) {
   	    for (int j = 0; j < i; j++) {
   	    	if (outpairs[i * num_min + j] == 1) {
@@ -293,6 +289,7 @@ int main(int argc, char** argv) {
   	    	}
   	    }
 	}
+#endif
 
 #ifdef USE_MPI
 	MPI_Finalize();

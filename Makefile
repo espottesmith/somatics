@@ -1,7 +1,7 @@
 .PHONY: execute clean
 
 ON_CORI           = FALSE
-USE_MPI           = TRUE
+USE_MPI           = FALSE
 USE_MOLECULE      = FALSE
 
 USE_MIN_FINDER    = TRUE
