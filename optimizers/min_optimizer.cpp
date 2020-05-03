@@ -159,11 +159,12 @@ std::vector<double*> MinimaNicheOptimizer::optimize (std::ofstream& fsave) {
 
   }
 
-  minima.resize(swarm.pos_best_globals.size());
-  for (int i = 0; i < minima.size(); i++) {
-    minima[i] = new double[num_dim];
-    for (int d = 0; d < num_dim; d++) {
-      minima[i][d] = swarm.pos_best_globals[i][d];
+  minima.resize(0);
+  for (int i = 0; i < swarm.pos_best_globals.size(); i++) {
+    if (swarm.subswarms[i].num_min_agent >= UNIQUE_MIN_SIZE_LOWBOUND) {
+      double* mins = new double[num_dim];
+      for (int d = 0; d < num_dim; d++) { mins[d] = swarm.pos_best_globals[i][d]; }
+      minima.push_back( mins );
     }
   }
 
