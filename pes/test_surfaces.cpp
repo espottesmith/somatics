@@ -56,15 +56,15 @@ Muller_Brown::Muller_Brown (): PotentialEnergySurface(){}
 double Halgren_Lipscomb::calculate_energy(double* position, std::string name_space){
     double x = position[0];
     double y = position[1];
-    return pow((x - y) * (x - y) - 5.0/3.0, 2) + 4 * (x * y - 4) * (x * y - 4) + x - y;
+    return pow((x - y) * (x - y) - 5.0/3.0 * 5.0/3.0, 2) + 4 * (x * y - 4) * (x * y - 4) + x - y;
 }
 
 double* Halgren_Lipscomb::calculate_gradient(double* position, std::string name_space) {
     double x = position[0];
     double y = position[1];
     double* gradient = new double[2];
-    gradient[0] = 2 * ((x - y) * (x - y) - 5.0/3.0) * (x - y) + 8 * (x * y - 4) * y + 1;
-    gradient[1] = -2 * ((x - y) * (x - y) - 5.0/3.0) * (x - y) + 8 * (x * y - 4) * x - 1;
+    gradient[0] = 2 * ((x - y) * (x - y) - 5.0/3.0 * 5.0/3.0) * (x - y) + 8 * (x * y - 4) * y + 1;
+    gradient[1] = -2 * ((x - y) * (x - y) - 5.0/3.0 * 5.0/3.0) * (x - y) + 8 * (x * y - 4) * x - 1;
     return gradient;
 }
 
