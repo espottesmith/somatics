@@ -76,8 +76,12 @@ public:
     void run();
     double* find_ts();
 
+#ifdef USE_MPI
+    void communicate();
+#endif
+
     TransitionStateOptimizer(double step_size_in, double distance_goal_in, int num_steps_in,
-    		PotentialEnergySurface* pes_in, double* min_one_in, double* min_two_in, int save_freq_in,
+    		PotentialEnergySurface* pes_in, int save_freq_in,
     		char *filename_in);
 
 };

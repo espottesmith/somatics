@@ -220,7 +220,6 @@ int main(int argc, char** argv) {
 	}
 	std::cout << "Defined region" << std::endl;
 
-
 	double inertia = 0.5;
 	double cognit  = 1.0;
 	double social  = 2.0;
