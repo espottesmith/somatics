@@ -7,35 +7,45 @@
 #include <random>
 #include <vector>
 #include <utility>
-#include <omp.h>
 
 #include "common.h"
-#include "voronoi/voronoi.h"
 #include "pes/pes.h"
 #include "pes/test_surfaces.h"
+#ifdef USE_MIN_FINDER
 #include "swarms/swarm.h"
-#include "optimizers/optimizer.h"
+#include "optimizers/min_optimizer.h"
+#endif
+#ifdef USE_TS_FINDER
 #include "optimizers/ts_optimizer.h"
+#endif
+#ifdef USE_QHULL
+#include "voronoi/voronoi.h"
+#endif
 
+#include <omp.h>
 #ifdef USE_MPI
-	#include <mpi.h>
+#include <mpi.h>
 #endif
 
 #ifdef USE_MOLECULE
-	#include "adapters/xtb_adapter.h"
-	#include "utils/xyz.h"
-	#include "molecules/molecule.h"
-	#include "pes/xtb_surface.h"
+#include "adapters/xtb_adapter.h"
+#include "utils/xyz.h"
+#include "molecules/molecule.h"
+#include "pes/xtb_surface.h"
 #endif
 
 // ==============
 // Main Function
 // ==============
 
-int num_agents_min;
+int num_agents_min_tot;
 int num_agents_ts;
 int num_dim;
 int num_threads;
+
+#ifdef USE_MPI
+int num_procs, mpi_rank;
+#endif
 
 int main(int argc, char** argv) {
 	// Parse Args
@@ -56,7 +66,7 @@ int main(int argc, char** argv) {
 	}
 
 	// Initialize Particles
-	num_agents_min = find_int_arg(argc, argv, "-nmin", 1000);
+	num_agents_min_tot = find_int_arg(argc, argv, "-nmin", 1000);
 	num_agents_ts = find_int_arg(argc, argv, "-nts", 8);
 
 	num_threads = find_int_arg(argc, argv, "-nthreads", 1);
@@ -80,6 +90,8 @@ int main(int argc, char** argv) {
 	}
 
 	PotentialEnergySurface* pes;
+	double* lb;
+	double* ub;
 
 #ifdef USE_MOLECULE
 	XTBSurface xtbsurf;
@@ -91,6 +103,7 @@ int main(int argc, char** argv) {
 	Culot_Dive_Nguyen_Ghuysen cdng;
 
 	if (molfile != nullptr) {
+
 #ifdef USE_MOLECULE
 		Molecule mol = xyz_to_molecule(molfile);
 
@@ -104,11 +117,15 @@ int main(int argc, char** argv) {
 		}
 
 		XTBAdapter adapter = XTBAdapter("xtb", "input.xyz", "xtb.out", num_threads_xtb);
-		double* lb = get_lower_bounds(mol, 1.0);
-		double* ub = get_upper_bounds(mol, 1.0);
+
+		lb = new double[num_dim];
+		ub = new double[num_dim];
+	        lb = get_lower_bounds(mol, 1.0);
+	        ub = get_upper_bounds(mol, 1.0);
+
 		xtbsurf = XTBSurface(mol, adapter, 0.2, lb, ub);
 		pes = &xtbsurf;
-#endif //USE_MOLECULE
+#endif
 
 	} else if (surf_name != nullptr) {
 		num_dim = 2;
@@ -116,23 +133,27 @@ int main(int argc, char** argv) {
 		std::string surface(surf_name);
 
 		if (surface == "Muller_Brown") {
-			double lb[2] = {-1.25, -1.5};
-			double ub[2] = {1.25, 1.75};
+		        lb = new double[num_dim]; ub = new double[num_dim];
+		        lb[0] = -1.25; lb[1] = -1.50;
+			ub[0] =  1.25; ub[1] =  1.75;
 			mbsurf = Muller_Brown(lb, ub);
 			pes = &mbsurf;
 		} else if (surface == "Halgren_Lipscomb") {
-			double lb[2] = {0.5, 0.5};
-			double ub[2] = {4.0, 4.0};
+		        lb = new double[num_dim]; ub = new double[num_dim];
+		        lb[0] = 0.5; lb[1] = 0.5;
+			ub[0] = 4.0; ub[1] = 4.0;
 			hlsurf = Halgren_Lipscomb(lb, ub);
 			pes = &hlsurf;
 		} else if (surface == "Quapp_Wolfe_Schlegel") {
-			double lb[2] = {-2.0, -2.0};
-			double ub[2] = {2.0, 2.0};
+		        lb = new double[num_dim]; ub = new double[num_dim];
+		        lb[0] = -2.0; lb[1] = -2.0;
+			ub[0] =  2.0; ub[1] =  2.0;
 			qwssurf = Quapp_Wolfe_Schlegel(lb, ub);
 			pes = &qwssurf;
 		} else if (surface == "Culot_Dive_Nguyen_Ghuysen") {
-			double lb[2] = {-4.5, -4.5};
-			double ub[2] = {4.5, 4.5};
+		        lb = new double[num_dim]; ub = new double[num_dim];
+		        lb[0] = -4.5; lb[1] = -4.5;
+			ub[0] =  4.5; ub[1] =  4.5;
 			cdng = Culot_Dive_Nguyen_Ghuysen(lb, ub);
 			pes = &cdng;
 		} else {
@@ -144,7 +165,33 @@ int main(int argc, char** argv) {
 
 	std::cout << "Defined surface" << std::endl;
 
-	std::ofstream fsave("minima.txt");
+#ifdef USE_MPI
+	// Init MPI
+	MPI_Init(&argc, &argv);
+	MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
+	MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+	init_mpi_structs ();
+#endif
+
+#ifdef USE_MIN_FINDER
+#ifdef USE_MPI
+	std::string filename = "minima" + std::to_string(mpi_rank) + ".txt";
+	std::ofstream fsave(filename);
+
+	int num_agents_min = (num_agents_min_tot + num_procs - 1) / num_procs;
+	if (mpi_rank == num_procs - 1) {
+	  num_agents_min -= num_procs * num_agents_min - num_agents_min_tot;
+	}
+	if (verbosity > 1)
+	  printf("num agents = %i (rank = %i) \n", num_agents_min, mpi_rank);
+#else
+	std::string filename = "minima.txt";
+	std::ofstream fsave(filename);
+
+	int num_agents_min = num_agents_min_tot;
+	if (verbosity > 1)
+	  printf("num agents = %i \n", num_agents_min);
+#endif
 
 	agent_base_t* min_agent_bases = new agent_base_t[num_agents_min];
 
@@ -153,13 +200,27 @@ int main(int argc, char** argv) {
 		min_agent_bases[a].vel = new double[num_dim];
 		min_agent_bases[a].pos_best = new double[num_dim];
 	}
-
+	
+#ifdef USE_MPI
+	int decomp [num_dim];
+	int decomp_indices[num_dim];
+	factor (decomp, num_procs, num_dim);
+	get_indices (decomp_indices, decomp, mpi_rank, num_dim);
+#endif
+	
 	region_t region;
 	region.lo = new double[num_dim];
 	region.hi = new double[num_dim];
 	for (int d = 0; d < num_dim; d++) {
-		region.lo[d] = pes->get_lower_bound(d);
+	        region.lo[d] = pes->get_lower_bound(d);
 		region.hi[d] = pes->get_upper_bound(d);
+#ifdef USE_MPI
+		// printf("decomp[%i] = %i (rank %i) \n", d, decomp_indices[d], mpi_rank);
+		double size = (region.hi[d] - region.lo[d]) / decomp[d];
+		region.lo[d] = region.lo[d] + size * decomp_indices[d];
+		region.hi[d] = region.lo[d] + size;
+#endif
+		printf("lo = %f, hi = %f \n", region.lo[d], region.hi[d]);
 	}
 	std::cout << "Defined region" << std::endl;
 
@@ -170,7 +231,7 @@ int main(int argc, char** argv) {
 	init_agents(min_agent_bases, num_agents_min, region);
 	std::cout << "Initialized agents" << std::endl;
 
-	int max_subswarm_size = 8;
+	int max_subswarm_size = 16;
 	double var_threshold = 0.0001;
 
 	MinimaNicheSwarm swarm(pes, min_agent_bases, num_agents_min,
@@ -183,7 +244,8 @@ int main(int argc, char** argv) {
 
 	auto t_start_min_find = std::chrono::steady_clock::now();
 
-	std::vector<double*> minima = optimizer.optimize(fsave, num_threads);
+	std::vector<double*> minima = optimizer.optimize(fsave);
+	
 	auto t_end_min_find = std::chrono::steady_clock::now();
 	std::chrono::duration<double> diff = t_end_min_find - t_start_min_find;
 	double time_min_find = diff.count();
@@ -194,10 +256,14 @@ int main(int argc, char** argv) {
 		fsave.close();
 	}
 	delete[] min_agent_bases;
+#endif
 
+#ifdef USE_QHULL
 	int* outpairs = delaunay(minima);
 	int num_min = minima.size();
+#endif
 
+#ifdef USE_TS_FINDER
 	for (int i = 0; i < num_min; i++) {
   	    for (int j = 0; j < i; j++) {
   	    	if (outpairs[i * num_min + j] == 1) {
@@ -226,6 +292,7 @@ int main(int argc, char** argv) {
   	    	}
   	    }
 	}
+#endif
 
 #ifdef USE_MPI
 	MPI_Finalize();
