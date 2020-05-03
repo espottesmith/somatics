@@ -182,11 +182,15 @@ int main(int argc, char** argv) {
 	if (mpi_rank == num_procs - 1) {
 	  num_agents_min -= num_procs * num_agents_min - num_agents_min_tot;
 	}
-	printf("num agents = %i (rank = %i) \n", num_agents_min, mpi_rank);
+	if (verbosity > 1)
+	  printf("num agents = %i (rank = %i) \n", num_agents_min, mpi_rank);
 #else
-	std::ofstream fsave("minima.txt");
+	std::string filename = "minima.txt";
+	std::ofstream fsave(filename);
 
 	int num_agents_min = num_agents_min_tot;
+	if (verbosity > 1)
+	  printf("num agents = %i \n", num_agents_min);
 #endif
 
 	agent_base_t* min_agent_bases = new agent_base_t[num_agents_min];
@@ -219,7 +223,6 @@ int main(int argc, char** argv) {
 		printf("lo = %f, hi = %f \n", region.lo[d], region.hi[d]);
 	}
 	std::cout << "Defined region" << std::endl;
-
 
 	double inertia = 0.5;
 	double cognit  = 1.0;

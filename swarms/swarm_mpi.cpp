@@ -34,8 +34,9 @@ void MinimaNicheSwarm::update_swarm_register_mpi () {
       
     int swarm_index_best = -1;
     double rsq_max = -1.0;
+    double rsq_min = -1.0;
     int num_agent_sum = 0;
-	
+    
     for (int p = 0; p < num_subswarm; p++) {
       for (int i = 0; i < subswarms[p].num_ids; i++) {
 	/* printf("swarm_id = %i, q = %i (rank %i) \n", subswarms[p].swarm_ids[i], q, mpi_rank); */
@@ -57,9 +58,6 @@ void MinimaNicheSwarm::update_swarm_register_mpi () {
       }
     }
 
-    /* printf("\t swarm_index_best = %i (rank %i) \n", swarm_index_best, mpi_rank); */
-    /* printf("GOT HERE 0 (rank %i) \n", mpi_rank); */
-
     if (swarm_index_best != -1) {
       swarm_register[q].fitness_best = fitness_best_globals[swarm_index_best];
       for (int d=0; d<num_dim; d++) {
@@ -74,43 +72,25 @@ void MinimaNicheSwarm::update_swarm_register_mpi () {
       fitness_to_reduce.d = FITNESS_LIM;
     }
     fitness_to_reduce.i = mpi_rank;
+    
     MPI_Allreduce(&fitness_to_reduce, &fitness_reduced, 1,
 		  MPI_DOUBLE_INT, MPI_MINLOC, MPI_COMM_WORLD);
-
-    /* printf("rank to bcast = %i \n", fitness_reduced.i); */
-      
-    /* MPI_Datatype SwarmPropMPI_P; */
-    /* // Create MPI Swarm Prop Type */
-    /* { */
-    /* 	swarm_prop_t subswarm_prop; */
-    /* 	subswarm_prop.pos_best = new double[num_dim]; */
-    
-    /* 	const int nitems = 4; */
-    /* 	int blocklengths[nitems] = {1, num_dim, 1, 1}; */
-    /* 	MPI_Datatype types[nitems] = {MPI_INT, MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE}; */
-    /* 	MPI_Aint offsets[nitems], base; */
-
-    /* 	offsets[0] = offsetof(swarm_prop_t, id); */
-    /* 	offsets[1] = offsetof(swarm_prop_t, pos_best); */
-    /* 	offsets[2] = offsetof(swarm_prop_t, fitness_best); */
-    /* 	offsets[3] = offsetof(swarm_prop_t, radius_sq); */
-  
-    /* 	MPI_Type_create_struct(nitems, blocklengths, offsets, types, &SwarmPropMPI_P); */
-    /* 	MPI_Type_commit(&SwarmPropMPI_P); */
-    /* } */
-    /* MPI_Bcast(&(swarm_register[q]), 1, SwarmPropMPI, fitness_reduced.i, MPI_COMM_WORLD); */
-      
     MPI_Bcast(&(swarm_register[q].fitness_best), 1, MPI_DOUBLE,
 	      fitness_reduced.i, MPI_COMM_WORLD);
     MPI_Bcast(&(swarm_register[q].pos_best[0]), num_dim, MPI_DOUBLE,
 	      fitness_reduced.i, MPI_COMM_WORLD);
 
+    MPI_Allreduce(&(swarm_register[q].radius_sq), &rsq_min, 1,
+		  MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+    if (rsq_min == -1.0) { rsq_max = -1.0; }
     MPI_Allreduce(&rsq_max, &(swarm_register[q].radius_sq), 1,
 		  MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 
     MPI_Allreduce(&num_agent_sum, &(swarm_register[q].num_agent), 1,
 		  MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
+    /* printf("\t swarm_index_best = %i (rank %i) \n", swarm_index_best, mpi_rank); */
+    /* printf("rank to bcast = %i \n", fitness_reduced.i); */
     /* if (swarm_register[q].fitness_best != -1.0) { */
     /* 	printf("fitness_best[%i] = %f (rank %i) \n", q, swarm_register[q].fitness_best, mpi_rank); */
     /* 	for (int d=0; d<num_dim; d++) { */
@@ -170,6 +150,8 @@ void MinimaNicheSwarm::merge_subswarms_mpi () {
 	swarm_rsq[p] = -1.0;
 	fitness_best_globals[p] = -1.0;
 
+	swarm_register[q].radius_sq = -1.0;
+	swarm_register[q].fitness_best = -1.0;
 	swarm_register[q].num_agent = num_min_agent_combine;
 
       }
@@ -274,10 +256,7 @@ void MinimaNicheSwarm::form_subswarm_reduce_mpi ( std::vector< std::vector < map
 
   for (int p = 0; p < num_procs; p++) { sizes_to_form[p] = 0; }
   sizes_to_form[mpi_rank] = size_to_form;
-    
-  /* printf("size_to_form = %i (rank = %i) \n", sizes_to_form[mpi_rank], mpi_rank); */
-  /* printf("GOT HERE 0 (rank %i) \n", mpi_rank); */
-
+  
   for (int p = 0; p < num_procs; p++) {
     MPI_Bcast(&sizes_to_form[p], 1, MPI_INT, p, MPI_COMM_WORLD);
   }
@@ -311,8 +290,6 @@ void MinimaNicheSwarm::form_subswarm_reduce_mpi ( std::vector< std::vector < map
     
   for (int p = 0; p < num_procs; p++) {
     for (int i = 0; i < sizes_to_form[p]; i++) {
-      // FIXME: Need more reasonable extreme 
-      /* double dist_sq_min = -1.0; */
       double dist_sq_min = DIST_LIM;
       int mapping = -1;
       for (int j = 0; j < num_min_agent; j++) {
@@ -343,7 +320,6 @@ void MinimaNicheSwarm::form_subswarm_reduce_mpi ( std::vector< std::vector < map
 	int indices[2];
 	int sizes[2] = {buffsize, num_procs};
 	get_indices (indices, sizes, distances[p][i].i, 2);
-	/* printf("indices = {%i, %i} \n", indices[0], indices[1]); */
 	map_to_form[p][i].part_id   = indices[0];
 	map_to_form[p][i].rank      = indices[1];
 	map_to_form[p][i].swarm_id  = swarm_identity[p][i];
@@ -353,11 +329,11 @@ void MinimaNicheSwarm::form_subswarm_reduce_mpi ( std::vector< std::vector < map
 	map_to_form[p][i].swarm_id  = -1;
       }
     }
-    
   }
     
   /* /////////////////////////////////////////////////// */
   /* /\* HACK *\/ MPI_Barrier( MPI_COMM_WORLD ); */
+  /* printf("size_to_form = %i (rank = %i) \n", sizes_to_form[mpi_rank], mpi_rank); */
   /* for (int p = 0; p < num_procs; p++) { */
   /*   printf("number to form = %i \n", sizes_to_form[p]); */
   /*   for (int i = 0; i < sizes_to_form[p]; i++) { */

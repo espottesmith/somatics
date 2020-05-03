@@ -291,7 +291,7 @@ void MinimaNicheSwarm::evolve_subswarms () {
 void MinimaNicheSwarm::merge_subswarms () {
 
 #ifdef USE_MPI
-  // merge_subswarms_mpi();
+  merge_subswarms_mpi();
 #endif
 
   std::vector<bool> merged;
