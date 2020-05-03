@@ -1,6 +1,8 @@
 .PHONY: execute clean
 
 ON_CORI           = FALSE
+USE_KNL           = FALSE
+
 USE_MPI           = FALSE
 USE_MOLECULE      = FALSE
 
@@ -31,7 +33,6 @@ endif
 
 DEPS = main.cpp common.h utils/math.h pes/pes.h pes/test_surfaces.h
 OBJS = main.o math.o test_surfaces.o common.o
-EXTERN = 
 
 ifeq ($(USE_MIN_FINDER), TRUE)
 DEPS += agents/minima_agent.h swarms/swarm.h optimizers/min_optimizer.h
@@ -46,8 +47,14 @@ DEFINES	+= -DUSE_TS_FINDER=$(USE_TS_FINDER)
 endif
 
 EXTERN += -fopenmp
+CFLAGS += -fopenmp
+ifeq ($(ON_CORI), TRUE)
 LIBSCIROOT = /opt/cray/pe/libsci/19.06.1/GNU/8.1/x86_64
-CFLAGS += -I$(LIBSCIROOT)/include -O3 -march=knl -fopenmp
+CFLAGS += -I$(LIBSCIROOT)/include -O3
+endif
+ifeq ($(ON_KNL), TRUE)
+CFLAGS += -march=knl
+endif
 
 ifeq ($(USE_QHULL), TRUE)
 DEPS += voronoi/voronoi.h 
