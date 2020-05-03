@@ -129,13 +129,17 @@ std::vector<double*> MinimaNicheOptimizer::optimize (std::ofstream& fsave) {
 
     //////////////////////////////////////////////////////////////////////
 
-    // Cognition only
-    if (verbosity > 0){ printf("Cognition only step \n"); }
-    swarm.cognition_only();
+    // // Cognition only
+    // if (verbosity > 0){ printf("Cognition only step \n"); }
+    // swarm.cognition_only();
 
-    // Update subswarms
-    if (verbosity > 0){ printf("Evolve subswarms \n"); }
-    swarm.evolve_subswarms();
+    // // Update subswarms
+    // if (verbosity > 0){ printf("Evolve subswarms \n"); }
+    // swarm.evolve_subswarms();
+
+    // Evolve all niche agents
+    if (verbosity > 0){ printf("Evolve niche agents \n"); }
+    swarm.evolve_niche_agents ();
 
     // Merge subswarms
     if (verbosity > 0){ printf("Merge subswarms \n"); }

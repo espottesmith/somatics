@@ -188,9 +188,11 @@ void MinimaNicheSwarm::add_agents_subswarms_mpi () {
 					  agent_subswarm_bases, 1,
 					  inertia, cognit, social,
 					  (1.0/8.0)*sqrt(dist_sq), 5, 10) );
+
+	num_subswarm++;
 	  
 #ifdef USE_MPI
-	subswarms[num_subswarm].add_swarm_id( q );
+	subswarms[num_subswarm - 1].add_swarm_id( q );
 	swarm_tally++;
 #endif
       
@@ -198,8 +200,9 @@ void MinimaNicheSwarm::add_agents_subswarms_mpi () {
 	pos_best_globals.push_back( pos_temp );
 	fitness_best_globals.push_back( -1.0 );
 	swarm_rsq.push_back( -1.0 );
-      
-	num_subswarm++;
+
+	swarm_map[agent_subswarm_bases[0].id] = num_subswarm - 1;
+	agent_map[agent_subswarm_bases[0].id] = subswarms[num_subswarm - 1].num_min_agent - 1;
 
 	joined[p] = true;
 	to_remove.push_back(p);

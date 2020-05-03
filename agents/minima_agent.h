@@ -25,6 +25,7 @@ class MinimaAgent {
 
   void fitness_calc (PotentialEnergySurface* pot_energy_surf);
   void update_velocity (std::vector<double> pos_best_global);
+  void update_velocity_cognit_only ();
   void update_velocity_best (std::vector<double> pos_best_global, double rho);
   void update_position (region_t region);
   void update_variance ();
