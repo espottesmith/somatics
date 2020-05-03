@@ -110,6 +110,7 @@ void MinimaSwarm::update_fitnesses_gcpso (double& fitness_best_global, std::vect
     }
   }
 
+  index_best = -1;
   for (int p=0; p<num_min_agent; p++) {
     if ( agents[p].base.fitness < fitness_best_global ||  fitness_best_global == -1.0 ) {
       index_best = p;
@@ -291,7 +292,7 @@ void MinimaNicheSwarm::evolve_subswarms () {
 void MinimaNicheSwarm::merge_subswarms () {
 
 #ifdef USE_MPI
-  merge_subswarms_mpi();
+  // merge_subswarms_mpi();
 #endif
 
   std::vector<bool> merged;
@@ -664,7 +665,7 @@ void MinimaNicheSwarm::form_subswarms () {
 	subswarms[num_subswarm].add_swarm_id( id_to_link[i] );
 	swarm_tally++;
 #endif
-      
+	
 	std::vector< double > pos_temp(num_dim);
 	pos_best_globals.push_back( pos_temp );
 	fitness_best_globals.push_back( -1.0 );
@@ -674,6 +675,9 @@ void MinimaNicheSwarm::form_subswarms () {
       
 	// printf("formed new subswarm \n");
 
+      } else {
+	// Still update swarm tally
+	swarm_tally++;
       }
 
     }
