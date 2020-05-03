@@ -110,6 +110,7 @@ void MinimaSwarm::update_fitnesses_gcpso (double& fitness_best_global, std::vect
     }
   }
 
+  index_best = -1;
   for (int p=0; p<num_min_agent; p++) {
     if ( agents[p].base.fitness < fitness_best_global ||  fitness_best_global == -1.0 ) {
       index_best = p;
@@ -304,8 +305,6 @@ void MinimaNicheSwarm::merge_subswarms () {
   for (int p = 0; p < num_subswarm; p++) {
     for (int q = p+1; q < num_subswarm; q++) {
 
-      /* printf("checking subswarms %i & %i \n", p, q); */
-
       // compute distance
       double dist_sq = compute_dist_sq(pos_best_globals[p], pos_best_globals[q]);
 
@@ -323,8 +322,7 @@ void MinimaNicheSwarm::merge_subswarms () {
 	num_min_agent_combine += swarm_register[swarm_id].num_agent;
       }
 #endif
-      /* printf("combined size, maximum size = %i, %i \n", num_min_agent_combine, max_subswarm_size); */
-
+      
       if (dist_sq < Rsum_sq    &&
 	  swarm_rsq[p] != -1.0 && swarm_rsq[q] != -1.0 &&
 	  !merged[p]           && !merged[q]           &&
@@ -356,7 +354,6 @@ void MinimaNicheSwarm::merge_subswarms () {
 	}
 #endif
 
-	/* int idx_best = (fitness_best_globals[p] < fitness_best_globals[q]) ? p : q; */
 	swarm_rsq[p] = -1.0;
 	fitness_best_globals[p] = -1.0;
 
@@ -370,34 +367,20 @@ void MinimaNicheSwarm::merge_subswarms () {
     }
 
   }
-
-  /* if (to_remove.size() > 0) { printf("removing swarms that have merged \n"); } */
-
-  /* printf("indices to remove:"); */
-  /* for (int i = 0; i < to_remove.size(); i++) { */
-  /*   printf(" %i", to_remove[i]); */
-  /* } */
-  /* printf("\n"); */
-
+  
   // Remove subswarm
   for (int i = to_remove.size() - 1; i >= 0; i--) {
-
     int q = to_remove[i];
     for (int j = 0; j < to_remove.size(); j++) {
       if (to_remove[j] > q) { to_remove[j]--; }
     }
-
-    /* printf("q = %i\n", q); */
     subswarms.erase (                       subswarms.begin() + q );
     swarm_rsq.erase (                       swarm_rsq.begin() + q );
     fitness_best_globals.erase ( fitness_best_globals.begin() + q );
     pos_best_globals.erase (         pos_best_globals.begin() + q );
-
   }
 
   num_subswarm -= to_remove.size();
-
-  /* if (to_remove.size() > 0) { printf("removed swarms that have merged \n"); } */
 
 }
 
@@ -422,14 +405,8 @@ void MinimaNicheSwarm::add_agents_subswarms () {
 
       if (dist_sq < swarm_rsq[q] && !joined[p]) {
 
-	/* printf("distance^2 = %f, radius^2 = %f \n", dist_sq, swarm_rsq[q]); */
 	if (verbosity > 1)
 	  printf("adding agent %i to subswarm %i \n", p, q);
-
-	/* for (int d=0; d<num_dim; d++) { agents[p].base.vel[d] = 0.0; } */
-	/* for (int i=0; i<subswarms[q].num_min_agent; i++) { */
-	/*   for (int d=0; d<num_dim; d++) { subswarms[q].agents[i].base.vel[d] = 0.0; } */
-	/* } */
 
 	subswarms[q].agents.push_back( MinimaAgent(agents[p].base, subswarms[q].inertia,
 						   subswarms[q].cognit, subswarms[q].social,
@@ -448,29 +425,16 @@ void MinimaNicheSwarm::add_agents_subswarms () {
     }
   }
 
-  /* if (to_remove.size() > 0) { printf("removing agents that have joined subswarm \n"); } */
-
-  /* printf("indices to remove:"); */
-  /* for (int i = 0; i < to_remove.size(); i++) { */
-  /*   printf(" %i", to_remove[i]); */
-  /* } */
-  /* printf("\n"); */
-
-  // Remove subswarm
+  // Remove agents that were added to subswarm
   for (int i = to_remove.size() - 1; i >= 0; i--) {
-
     int q = to_remove[i];
     for (int j = 0; j < to_remove.size(); j++) {
       if (to_remove[j] > q) { to_remove[j]--; }
     }
-
-    /* printf("q = %i\n", q); */
     agents.erase (agents.begin() + q );
   }
 
   num_min_agent -= to_remove.size();
-
-  /* if (to_remove.size() > 0) { printf("removed agents that have joined subswarm \n"); } */
 
 }
 
@@ -493,7 +457,6 @@ void MinimaNicheSwarm::form_subswarms () {
     if (agents[p].variance < var_threshold &&
 	agents[p].variance != -1.0 && !joined[p]) {
 
-      /* printf("variance = %e, threshold = %e (particle # %i)\n", agents[p].variance, var_threshold, p); */
       idx_to_form.push_back(p);
 #ifdef USE_MPI
       for (int d = 0; d < num_dim; d++) {
@@ -520,7 +483,6 @@ void MinimaNicheSwarm::form_subswarms () {
     swarm_ids[i] = buffsize * mpi_rank + swarm_tally + i;
   }
 
-  /* printf("size_to_form = %i (mpi_rank = %i) \n", size_to_form, mpi_rank); */
   form_subswarm_reduce_mpi( map_to_form, distances, pos_to_form, idx_to_form, swarm_ids, size_to_form );
 
   for (int i = 0; i < size_to_form; i++) {
@@ -664,7 +626,7 @@ void MinimaNicheSwarm::form_subswarms () {
 	subswarms[num_subswarm].add_swarm_id( id_to_link[i] );
 	swarm_tally++;
 #endif
-      
+	
 	std::vector< double > pos_temp(num_dim);
 	pos_best_globals.push_back( pos_temp );
 	fitness_best_globals.push_back( -1.0 );
@@ -674,18 +636,13 @@ void MinimaNicheSwarm::form_subswarms () {
       
 	// printf("formed new subswarm \n");
 
+      } else {
+	// Still update swarm tally
+	swarm_tally++;
       }
 
     }
   }
-
-  /* if (to_remove.size() > 0) { printf("removing agents that have formed subswarm \n"); } */
-
-  /* printf("indices to remove:"); */
-  /* for (int i = 0; i < to_remove.size(); i++) { */
-  /*   printf(" %i", to_remove[i]); */
-  /* } */
-  /* printf("\n"); */
 
   // Remove subswarm
   for (int i = to_remove.size() - 1; i >= 0; i--) {
@@ -694,15 +651,11 @@ void MinimaNicheSwarm::form_subswarms () {
     for (int j = 0; j < to_remove.size(); j++) {
       if (to_remove[j] > q) { to_remove[j]--; }
     }
-
-    /* printf("q = %i\n", q); */
     if (q >= 0) {
       agents.erase (agents.begin() + q );
     }
   }
 
   num_min_agent -= to_remove.size();
-
-  /* if (to_remove.size() > 0) { printf("removed agents that have formed subswarm \n"); } */
-      
+  
 }
