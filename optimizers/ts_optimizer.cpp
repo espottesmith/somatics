@@ -31,6 +31,9 @@ void TransitionStateOptimizer::update() {
 		history_hill_scores_one.push_back(hill_score_one);
 		history_hill_scores_two.push_back(hill_score_two);
 
+		history_average_positions_one.push_back(average_position_one);
+		history_average_positions_two.push_back(average_position_two);
+
 		for (a = 0; a < num_agents_ts; a++) {
 			hill_score_one += agents_one[a].get_hill_score() / (num_agents_ts * 2);
 			hill_score_two += agents_two[a].get_hill_score() / (num_agents_ts * 2);
@@ -84,6 +87,7 @@ void TransitionStateOptimizer::update() {
 				current_positions_two[agent_id] = agents_two[agent_id].get_position();
 				grad_rmss_two[agent_id] = agents_two[agent_id].get_grad_rms();
 				grad_norms_two[agent_id] = agents_two[agent_id].get_grad_norm();
+				energies_two[agent_id] = agents_two[agent_id].get_energy();
 			} else {
 				agents_one[a].update_position();
 				agents_one[a].update_energy(pes);
@@ -91,6 +95,7 @@ void TransitionStateOptimizer::update() {
 				current_positions_one[a] = agents_one[a].get_position();
 				grad_rmss_one[a] = agents_one[a].get_grad_rms();
 				grad_norms_one[a] = agents_one[a].get_grad_norm();
+				energies_one[a] = agents_one[a].get_energy();
 			}
 		}
 	}
@@ -113,6 +118,11 @@ void TransitionStateOptimizer::update() {
 		average_grad_rms_two = average_of_array(grad_rmss_two, num_agents_ts);
 		average_grad_norm_two = average_of_array(grad_norms_two, num_agents_ts);
 		average_grad_norms_two.push_back(average_grad_norm_two);
+
+		average_energy_one = average_of_array(energies_one, num_agents_ts);
+		average_energy_two = average_of_array(energies_two, num_agents_ts);
+		history_average_energies_one.push_back(average_energy_one);
+		history_average_energies_two.push_back(average_energy_two);
 	}
 
 	// For scoring, each agent needs to know how far it is and how far others are
@@ -267,7 +277,6 @@ void TransitionStateOptimizer::run() {
 		        // Print to file output
 
 		        if (step_num % save_freq == 0 && fsave.good()) {
-			    static bool first = true;
 
 			    if (first) {
 			        fsave << num_agents_ts * 2 << " ";
@@ -317,94 +326,90 @@ double* TransitionStateOptimizer::find_ts() {
 	double min_average_one = std::numeric_limits<double>::infinity();
 	double min_hill_score_one = std::numeric_limits<double>::infinity();
 	double min_grad_norm_one = std::numeric_limits<double>::infinity();
+	double max_energy_one = -1 * std::numeric_limits<double>::infinity();
 	int starting_step_one = 0;
 
 	double min_average_two = std::numeric_limits<double>::infinity();
 	double min_hill_score_two = std::numeric_limits<double>::infinity();
 	double min_grad_norm_two = std::numeric_limits<double>::infinity();
+	double max_energy_two = -1 * std::numeric_limits<double>::infinity();
 	int starting_step_two = 0;
 
-	if (step_num < 6) {
-		// std::cout << "WARNING: TOO FEW STEPS FOR ADEQUATE ANALYSIS" << std::endl;
-		// Will almost definitely cause a segfault
-	} else {
-		// Average over 5 steps
-		// 5 chosen arbitrarily
-		double* hill_score_range_one = new double[5];
-		double* hill_score_range_two = new double[5];
-		double average_hill_score_one, average_hill_score_two;
-		for (int s = 0; s < step_num - 6; s++) {
-			for (int i = 0; i < 5; i++) {
-				hill_score_range_one[i] = history_hill_scores_one[s + i];
-				hill_score_range_two[i] = history_hill_scores_two[s + i];
-			}
-			average_hill_score_one = average_of_array(hill_score_range_one, 5);
-			average_hill_score_two = average_of_array(hill_score_range_two, 5);
+	double dist_scale = distance(min_one, min_two, num_dim);
+	int step_range = (int) step_num / 20;
 
-			if (abs(average_hill_score_one) < min_average_one) {
-				min_average_one = abs(average_hill_score_one);
-				starting_step_one = s;
-			}
-			if (abs(average_hill_score_two) < min_average_two) {
-				min_average_two = abs(average_hill_score_two);
-				starting_step_two = s;
-			}
-		}
-	}
+	double dist_one_one, dist_one_two, dist_two_one, dist_two_two;
+	int chosen_step_one, chosen_step_two;
+	int top_one, top_two, bottom_one, bottom_two;
 
-	// Now, for each range of 5 steps chosen, choose the best step
-	// std::cout << "STARTING STEP CHOSEN (one): " << starting_step_one << std::endl;
-	// std::cout << "STARTING STEP CHOSEN (two): " << starting_step_two << std::endl;
-	double* all_hill_scores_one = new double[num_agents_ts];
-	double* all_hill_scores_two = new double[num_agents_ts];
+	int agent_id_one, agent_id_two;
+	double grad_norm_one, grad_norm_two;
 	double step_hill_score_one, step_hill_score_two;
-	double step_hill_stdev_one, step_hill_stdev_two;
-	double hill_stdev_min_one, hill_stdev_min_two;
-	int step_one, step_two;
-	int chosen_step_one = starting_step_one;
-	int chosen_step_two = starting_step_two;
-	for (int i = 0; i < 5; i++) {
-		step_one = starting_step_one + i;
-		step_two = starting_step_two + i;
 
-		step_hill_score_one = history_hill_scores_one[step_one];
-		step_hill_score_two = history_hill_scores_two[step_two];
+	for (int s = 0; s < step_num - 1; s++) {
+		dist_one_one = distance(history_average_positions_one[s], min_one, num_dim) / dist_scale;
+		dist_one_two = distance(history_average_positions_one[s], min_two, num_dim) / dist_scale;
+		dist_two_one = distance(history_average_positions_two[s], min_one, num_dim) / dist_scale;
+		dist_two_two = distance(history_average_positions_two[s], min_two, num_dim) / dist_scale;
 
-		for (int a = 0; a < num_agents_ts; a++) {
-			all_hill_scores_one[a] = agents_one[a].history_hill_scores[step_one];
-			all_hill_scores_two[a] = agents_two[a].history_hill_scores[step_two];
+		if (history_average_energies_one[s] > max_energy_one && dist_one_one > 0.05 && dist_one_two > 0.05) {
+			starting_step_one = s;
+			max_energy_one = history_average_energies_one[s];
 		}
 
-
-	    step_hill_stdev_one = stdev_array(all_hill_scores_one, num_agents_ts);
-		step_hill_stdev_two = stdev_array(all_hill_scores_two, num_agents_ts);
-
-		if (step_hill_score_one < min_hill_score_one) {
-			min_hill_score_one = step_hill_score_one;
-			chosen_step_one = step_one;
-			hill_stdev_min_one = step_hill_stdev_one;
-		}
-
-		if (step_hill_score_two < min_hill_score_two) {
-			min_hill_score_two = step_hill_score_two;
-			chosen_step_two = step_two;
-			hill_stdev_min_two = step_hill_stdev_two;
+		if (history_average_energies_two[s] > max_energy_two && dist_two_one > 0.05 && dist_two_two > 0.05) {
+			starting_step_two = s;
+			max_energy_two = history_average_energies_two[s];
 		}
 	}
 
-	// std::cout << "CHOSEN STEP (one): " << chosen_step_one << std::endl;
-	// std::cout << "CHOSEN STEP (two): " << chosen_step_two << std::endl;
+	chosen_step_one = starting_step_one;
+	chosen_step_two = starting_step_two;
+
+	if (step_range > 0) {
+		if (starting_step_one - step_range < 0) {
+			top_one = 0;
+		} else {
+			top_one = starting_step_one - step_range;
+		}
+		if (starting_step_one + step_range > step_num - 1) {
+			bottom_one = step_num - 1;
+		} else {
+			bottom_one = starting_step_one + step_range;
+		}
+
+		if (starting_step_two - step_range < 0) {
+			top_two = 0;
+		} else {
+			top_two = starting_step_two - step_range;
+		}
+		if (starting_step_two + step_range > step_num - 1) {
+			bottom_two = step_num - 1;
+		} else {
+			bottom_two = starting_step_two + step_range;
+		}
+
+		for (int i = top_one; i < bottom_one; i++) {
+			step_hill_score_one = history_hill_scores_one[i];
+			if (step_hill_score_one < min_hill_score_one) {
+				min_hill_score_one = step_hill_score_one;
+				chosen_step_hill_one = i;
+			}
+		}
+
+		for (int i = top_two; i < bottom_two; i++) {
+			step_hill_score_two = history_hill_scores_two[i];
+			if (step_hill_score_two < min_hill_score_two) {
+				min_hill_score_two = step_hill_score_two;
+				chosen_step_hill_two = i;
+			}
+		}
+	}
 
 	// And then choose the best agent from that step
-	int agent_id_one, agent_id_two;
-	double* grad_one = new double[num_dim];
-	double* grad_two = new double[num_dim];
-	double grad_norm_one, grad_norm_two;
 	for (int a = 0; a < num_agents_ts; a++) {
-		grad_one = agents_one[a].history_grad[chosen_step_one];
-		grad_norm_one = array_norm(grad_one, num_dim);
-		grad_two = agents_two[a].history_grad[chosen_step_two];
-		grad_norm_two = array_norm(grad_two, num_dim);
+		grad_norm_one = array_norm(agents_one[a].history_grad[chosen_step_one], num_dim);
+		grad_norm_two = array_norm(agents_two[a].history_grad[chosen_step_two], num_dim);
 
 		if (grad_norm_one < min_grad_norm_one) {
 			min_grad_norm_one = grad_norm_one;
@@ -416,17 +421,6 @@ double* TransitionStateOptimizer::find_ts() {
 			agent_id_two = a;
 		}
 	}
-
-	// std::cout << "SWARM ONE CHOSEN AGENT" << std::endl;
-	// for (int d = 0; d < num_dim; d++) {
-	// 	std::cout << agents_one[agent_id_one].history_position[chosen_step_one][d] << " ";
-	// }
-	// std::cout << std::endl;
-	// std::cout << "SWARM TWO CHOSEN AGENT" << std::endl;
-	// for (int d = 0; d < num_dim; d++) {
-	// 	std::cout << agents_two[agent_id_two].history_position[chosen_step_two][d] << " ";
-	// }
-	// std::cout << std::endl;
 
 	// Each swarm has now chosen its agent and its step
 	// Pick the better of the two based on gradient norm
@@ -471,6 +465,7 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
 	differences_own_min_one = new double[num_agents_ts];
 	differences_other_min_one = new double[num_agents_ts];
 	differences_other_swarm_one = new double[num_agents_ts];
+	energies_one = new double[num_agents_ts];
 
     agents_two.resize(0);
     current_positions_two.resize(0);
@@ -481,6 +476,7 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
 	differences_own_min_two = new double[num_agents_ts];
 	differences_other_min_two = new double[num_agents_ts];
 	differences_other_swarm_two = new double[num_agents_ts];
+	energies_two = new double[num_agents_ts];
 
 	hill_scores_one = new double[num_agents_ts];
 	hill_scores_two = new double[num_agents_ts];
@@ -493,6 +489,7 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
     filename = filename_in;
 
     all_converged = false;
+    first = true;
 
     double upper_bound, lower_bound;
 
@@ -532,7 +529,10 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
 
     // Average position of swarms; used for scoring swarms
     average_position_one = vector_average(current_positions_one, num_dim);
+    history_average_positions_one.resize(0);
+
     average_position_two = vector_average(current_positions_two, num_dim);
+    history_average_positions_two.resize(0);
 
     // Gather energies and gradient norms
     for (a = 0; a < num_agents_ts; a++) {
@@ -541,12 +541,14 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
         agents_one[a].update_gradient(pes);
         grad_rmss_one[a] = agents_one[a].get_grad_rms();
         grad_norms_one[a] = agents_one[a].get_grad_norm();
+        energies_one[a] = agents_one[a].get_energy();
 
         // Swarm two
         agents_two[a].update_energy(pes);
         agents_two[a].update_gradient(pes);
         grad_rmss_two[a] = agents_two[a].get_grad_rms();
         grad_norms_two[a] = agents_two[a].get_grad_norm();
+        energies_two[a] = agents_two[a].get_energy();
     }
 
     average_grad_rms_one = average_of_array(grad_rmss_one, num_agents_ts);
@@ -555,6 +557,11 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
     average_grad_rms_two = average_of_array(grad_rmss_two, num_agents_ts);
     average_grad_norm_two = average_of_array(grad_norms_two, num_agents_ts);
     average_grad_norms_two.push_back(average_grad_norm_two);
+
+    average_energy_one = average_of_array(energies_one, num_agents_ts);
+    average_energy_two = average_of_array(energies_two, num_agents_ts);
+    history_average_energies_one.push_back(average_energy_one);
+    history_average_energies_two.push_back(average_energy_two);
 
     for (a = 0; a < num_agents_ts; a++) {
 		if (num_dim % 3 == 0) {

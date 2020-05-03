@@ -24,22 +24,30 @@ private:
     std::vector<TransitionStateAgent> agents_one;
     std::vector<double*> current_positions_one;
     double* average_position_one;
+    double* energies_one;
+    double average_energy_one;
     double* grad_rmss_one;
     double* grad_norms_one;
     double* scores_one;
     double hill_score_one;
     double* hill_scores_one;
     std::vector<double> history_hill_scores_one;
+    std::vector<double*> history_average_positions_one;
+    std::vector<double> history_average_energies_one;
 
     std::vector<TransitionStateAgent> agents_two;
     std::vector<double*> current_positions_two;
     double* average_position_two;
+    double* energies_two;
+    double average_energy_two;
     double* grad_rmss_two;
     double* grad_norms_two;
     double* scores_two;
     double hill_score_two;
     double* hill_scores_two;
     std::vector<double> history_hill_scores_two;
+    std::vector<double*> history_average_positions_two;
+    std::vector<double> history_average_energies_two;
 
     // Score parameters
     double average_grad_norm_one;
@@ -64,6 +72,8 @@ private:
 
     int* ownership;
     int threads;
+
+    bool first;
 
 public:
 
