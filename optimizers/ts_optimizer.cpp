@@ -393,7 +393,7 @@ double* TransitionStateOptimizer::find_ts() {
 			step_hill_score_one = history_hill_scores_one[i];
 			if (step_hill_score_one < min_hill_score_one) {
 				min_hill_score_one = step_hill_score_one;
-				chosen_step_hill_one = i;
+				chosen_step_one = i;
 			}
 		}
 
@@ -401,7 +401,7 @@ double* TransitionStateOptimizer::find_ts() {
 			step_hill_score_two = history_hill_scores_two[i];
 			if (step_hill_score_two < min_hill_score_two) {
 				min_hill_score_two = step_hill_score_two;
-				chosen_step_hill_two = i;
+				chosen_step_two = i;
 			}
 		}
 	}

@@ -256,6 +256,8 @@ int main(int argc, char** argv) {
 		fsave.close();
 	}
 	delete[] min_agent_bases;
+
+	std::cout << "# minima: " << minima.size() << std::endl;
 #endif
 
 #ifdef USE_QHULL
