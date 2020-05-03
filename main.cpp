@@ -250,6 +250,17 @@ int main(int argc, char** argv) {
 	std::chrono::duration<double> diff = t_end_min_find - t_start_min_find;
 	double time_min_find = diff.count();
 
+	if (verbosity > 0) {
+	  printf("minima: \n");
+	  for (int i=0; i<minima.size(); i++) {
+	    printf("\t");
+	    for (int d=0; d<num_dim; d++) {
+	      printf("%f ", minima[i][d]);
+	    }
+	    printf("\n");
+	  }
+	}
+
 	// Finalize
 	printf("Time to find minima = %f sec using %i minima agents \n", time_min_find, num_agents_min);
 	if (fsave) {

@@ -167,6 +167,39 @@ std::vector<double*> MinimaNicheOptimizer::optimize (std::ofstream& fsave) {
     }
   }
 
+#ifdef USE_MPI
+  int num_minima[num_procs];
+  num_minima[mpi_rank] = minima.size();
+  for (int p = 0; p < num_procs; p++) {
+    MPI_Bcast(&(num_minima[p]), 1, MPI_INT, p, MPI_COMM_WORLD);
+  }
+  std::vector<double> minima_global(0);
+  for (int p = 0; p < num_procs; p++) {
+    for (int i = 0; i < num_minima[p]; i++) {
+      for (int d = 0; d < num_dim; d++) {
+	if (mpi_rank == p) {
+	  minima_global.push_back( minima[i][d] );
+	} else {
+	  minima_global.push_back( 0.0 );
+	}
+      }
+    }
+  }
+
+  std::vector<double> minima_global_reduced( minima_global.size() );
+  MPI_Allreduce(&minima_global[0], &minima_global_reduced[0], minima_global.size(),
+		MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  
+  minima.resize(minima_global_reduced.size() / num_dim);
+  for (int i = 0; i < minima.size(); i++) {
+    minima[i] = new double[num_dim];
+    for (int d = 0; d < num_dim; d++) {
+      minima[i][d] = minima_global_reduced[num_dim * i + d];
+    }
+  }
+
+#endif
+  
   for (int i = minima.size() - 1; i >= 0; i--) {
     bool duplicate = false;
     for (int j = i - 1; j >= 0; j--) {
