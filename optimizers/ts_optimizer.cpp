@@ -325,15 +325,15 @@ double* TransitionStateOptimizer::find_ts() {
 
 	double min_average_one = std::numeric_limits<double>::infinity();
 	double min_hill_score_one = std::numeric_limits<double>::infinity();
-	double min_grad_norm_one = std::numeric_limits<double>::infinity();
 	double max_energy_one = -1 * std::numeric_limits<double>::infinity();
 	int starting_step_one = 0;
 
 	double min_average_two = std::numeric_limits<double>::infinity();
 	double min_hill_score_two = std::numeric_limits<double>::infinity();
-	double min_grad_norm_two = std::numeric_limits<double>::infinity();
 	double max_energy_two = -1 * std::numeric_limits<double>::infinity();
 	int starting_step_two = 0;
+
+	double min_grad_norm = std::numeric_limits<double>::infinity();
 
 	double dist_scale = distance(min_one, min_two, num_dim);
 	int step_range = (int) step_num / 20;
@@ -342,8 +342,8 @@ double* TransitionStateOptimizer::find_ts() {
 	int chosen_step_one, chosen_step_two;
 	int top_one, top_two, bottom_one, bottom_two;
 
-	int agent_id_one, agent_id_two;
-	double grad_norm_one, grad_norm_two;
+	int agent_id;
+	double grad_norm;
 	double step_hill_score_one, step_hill_score_two;
 
 	for (int s = 0; s < step_num - 1; s++) {
@@ -406,37 +406,33 @@ double* TransitionStateOptimizer::find_ts() {
 		}
 	}
 
+	// Pick swarm based on energy
 	// And then choose the best agent from that step
-	for (int a = 0; a < num_agents_ts; a++) {
-		grad_norm_one = array_norm(agents_one[a].history_grad[chosen_step_one], num_dim);
-		grad_norm_two = array_norm(agents_two[a].history_grad[chosen_step_two], num_dim);
+	if (history_average_energies_one[chosen_step_one] > history_average_energies_two[chosen_step_two]) {
+		for (int a = 0; a < num_agents_ts; a++) {
+			grad_norm = array_norm(agents_one[a].history_grad[chosen_step_one], num_dim);
 
-		if (grad_norm_one < min_grad_norm_one) {
-			min_grad_norm_one = grad_norm_one;
-			agent_id_one = a;
+			if (grad_norm < min_grad_norm) {
+				min_grad_norm = grad_norm;
+				agent_id = a;
+			}
+
 		}
 
-		if (grad_norm_two < min_grad_norm_two) {
-			min_grad_norm_two = grad_norm_two;
-			agent_id_two = a;
-		}
-	}
+		return agents_one[agent_id].history_position[chosen_step_one];
 
-	// Each swarm has now chosen its agent and its step
-	// Pick the better of the two based on gradient norm
-	// Could also look at stdev or variance among the hill scores
-	if (average_grad_norms_one[chosen_step_one] < average_grad_norms_two[chosen_step_two]) {
-		// Use the first swarm
-		// std::cout << "USING SWARM ONE" << std::endl;
-		// std::cout << "CHOSEN AGENT: " << agent_id_one << std::endl;
-		return agents_one[agent_id_one].history_position[chosen_step_one];
 	} else {
-		// Use the second swarm
-		// std::cout << "USING SWARM TWO" << std::endl;
-		// std::cout << "CHOSEN AGENT: " << agent_id_one << std::endl;
-		return agents_two[agent_id_two].history_position[chosen_step_two];
-	}
+		for (int a = 0; a < num_agents_ts; a++) {
+			grad_norm = array_norm(agents_two[a].history_grad[chosen_step_two], num_dim);
 
+			if (grad_norm < min_grad_norm) {
+				min_grad_norm = grad_norm;
+				agent_id = a;
+			}
+		}
+
+		return agents_two[agent_id].history_position[chosen_step_two];
+	}
 }
 
 TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double distance_goal_in,
