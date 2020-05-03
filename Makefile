@@ -1,8 +1,14 @@
 .PHONY: execute clean
 
-ON_CORI           = TRUE
+ON_CORI           = FALSE
+USE_KNL           = FALSE
+
 USE_MPI           = FALSE
 USE_MOLECULE      = TRUE
+
+USE_MIN_FINDER    = TRUE
+USE_TS_FINDER     = FALSE
+USE_QHULL         = FALSE
 
 ifeq ($(USE_MPI), TRUE)
 CXX = mpic++
@@ -27,20 +33,35 @@ endif
 
 DEPS = main.cpp common.h utils/math.h pes/pes.h pes/test_surfaces.h
 OBJS = main.o math.o test_surfaces.o common.o
-EXTERN = 
 
-DEPS += swarms/swarm.h optimizers/optimizer.h
+ifeq ($(USE_MIN_FINDER), TRUE)
+DEPS += agents/minima_agent.h swarms/swarm.h optimizers/min_optimizer.h
+OBJS += minima_agent.o swarm.o min_optimizer.o
+DEFINES	+= -DUSE_MIN_FINDER=$(USE_MIN_FINDER)
+endif
 
+ifeq ($(USE_TS_FINDER), TRUE)
 DEPS += optimizers/ts_optimizer.h
 OBJS += ts_agent.o ts_optimizer.o
+DEFINES	+= -DUSE_TS_FINDER=$(USE_TS_FINDER)
+endif
 
 EXTERN += -fopenmp
+CFLAGS += -fopenmp
+ifeq ($(ON_CORI), TRUE)
 LIBSCIROOT = /opt/cray/pe/libsci/19.06.1/GNU/8.1/x86_64
 CFLAGS += -I$(LIBSCIROOT)/include -I$(EIGEN3_DIR)/include/eigen3/ -O3 -march=knl -fopenmp
+endif
+ifeq ($(ON_KNL), TRUE)
+CFLAGS += -march=knl
+endif
 
+ifeq ($(USE_QHULL), TRUE)
 DEPS += voronoi/voronoi.h 
 OBJS += voronoi.o
 EXTERN += -L$(QHULLDIR)/lib -lqhullcpp -lqhull_r
+DEFINES	+= -DUSE_QHULL=$(USE_QHULL)
+endif
 
 ifeq ($(USE_MOLECULE), TRUE)
 DEPS += molecules/molecule.h utils/xyz.h adapters/xtb_adapter.h pes/xtb_surface.h
@@ -67,6 +88,21 @@ test_surfaces.o: pes/pes.h pes/test_surfaces.h pes/test_surfaces.cpp
 	@echo "Creating test surfaces object..."
 	${CXX} ${CFLAGS} -c pes/test_surfaces.cpp
 
+ifeq ($(USE_MIN_FINDER), TRUE)
+minima_agent.o: pes/pes.h agents/minima_agent.h agents/minima_agent.cpp
+	@echo "Creating minima agent object..."
+	${CXX} ${CFLAGS} -c agents/minima_agent.cpp $(DEFINES)
+
+swarm.o: pes/pes.h swarms/swarm.h swarms/swarm.cpp swarms/swarm_mpi.cpp
+	@echo "Creating swarm object..."
+	${CXX} ${CFLAGS} -c swarms/swarm.cpp swarms/swarm_mpi.cpp $(DEFINES)
+
+min_optimizer.o: optimizers/min_optimizer.h optimizers/min_optimizer.cpp
+	@echo "Creating min optimizer object..."
+	${CXX} ${CFLAGS} -c optimizers/min_optimizer.cpp $(DEFINES)
+endif
+
+ifeq ($(USE_TS_FINDER), TRUE)
 ts_agent.o: pes/pes.h utils/math.h agents/ts_agent.h agents/ts_agent.cpp
 	@echo "Creating TS agent object..."
 	${CXX} ${CFLAGS} -c agents/ts_agent.cpp
@@ -74,7 +110,9 @@ ts_agent.o: pes/pes.h utils/math.h agents/ts_agent.h agents/ts_agent.cpp
 ts_optimizer.o: pes/pes.h utils/math.h agents/ts_agent.h optimizers/ts_optimizer.h optimizers/ts_optimizer.cpp
 	@echo "Creating TS optimizer object..."
 	${CXX} ${CFLAGS} -c optimizers/ts_optimizer.cpp
+endif
 
+ifeq ($(USE_MOLECULE), TRUE)
 molecule.o: molecules/molecule.cpp molecules/molecule.h
 	@echo "Creating Molecule object..."
 	${CXX} ${CFLAGS} -c molecules/molecule.cpp
@@ -90,11 +128,14 @@ xtb_adapter.o: adapters/xtb_adapter.h adapters/xtb_adapter.cpp utils/xyz.h molec
 xtb_surface.o: pes/xtb_surface.h pes/xtb_surface.cpp molecules/molecule.h adapters/xtb_adapter.h pes/pes.h
 	@echo "Creating xTB PES object..."
 	${CXX} ${CFLAGS} -c pes/xtb_surface.cpp
+endif
 
+ifeq ($(USE_QHULL), TRUE)
 voronoi.o: voronoi/voronoi.cpp common.h
 	@echo "Creating qhull object.."
 	${CXX} ${CFLAGS} -c voronoi/voronoi.cpp
+endif
 
 clean:
 	@echo "Cleaning up"
-	rm execute main.o math.o test_surfaces.o ts_agent.o ts_optimizer.o molecule.o xyz.o common.o xtb_adapter.o xtb_surface.o voronoi.o
+	rm execute *.o

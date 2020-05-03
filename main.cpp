@@ -7,35 +7,45 @@
 #include <random>
 #include <vector>
 #include <utility>
-#include <omp.h>
 
 #include "common.h"
-#include "voronoi/voronoi.h"
 #include "pes/pes.h"
 #include "pes/test_surfaces.h"
+#ifdef USE_MIN_FINDER
 #include "swarms/swarm.h"
-#include "optimizers/optimizer.h"
+#include "optimizers/min_optimizer.h"
+#endif
+#ifdef USE_TS_FINDER
 #include "optimizers/ts_optimizer.h"
+#endif
+#ifdef USE_QHULL
+#include "voronoi/voronoi.h"
+#endif
 
+#include <omp.h>
 #ifdef USE_MPI
-	#include <mpi.h>
+#include <mpi.h>
 #endif
 
 #ifdef USE_MOLECULE
-	#include "adapters/xtb_adapter.h"
-	#include "utils/xyz.h"
-	#include "molecules/molecule.h"
-	#include "pes/xtb_surface.h"
+#include "adapters/xtb_adapter.h"
+#include "utils/xyz.h"
+#include "molecules/molecule.h"
+#include "pes/xtb_surface.h"
 #endif
 
 // ==============
 // Main Function
 // ==============
 
-int num_agents_min;
+int num_agents_min_tot;
 int num_agents_ts;
 int num_dim;
 int num_threads;
+
+#ifdef USE_MPI
+int num_procs, mpi_rank;
+#endif
 
 int main(int argc, char** argv) {
 	// Parse Args
@@ -56,7 +66,7 @@ int main(int argc, char** argv) {
 	}
 
 	// Initialize Particles
-	num_agents_min = find_int_arg(argc, argv, "-nmin", 1000);
+	num_agents_min_tot = find_int_arg(argc, argv, "-nmin", 1000);
 	num_agents_ts = find_int_arg(argc, argv, "-nts", 8);
 
 	num_threads = find_int_arg(argc, argv, "-nthreads", 1);
