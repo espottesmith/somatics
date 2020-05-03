@@ -34,12 +34,10 @@ void MinimaNicheSwarm::update_swarm_register_mpi () {
       
     int swarm_index_best = -1;
     double rsq_max = -1.0;
-    double rsq_min = -1.0;
     int num_agent_sum = 0;
     
     for (int p = 0; p < num_subswarm; p++) {
       for (int i = 0; i < subswarms[p].num_ids; i++) {
-	/* printf("swarm_id = %i, q = %i (rank %i) \n", subswarms[p].swarm_ids[i], q, mpi_rank); */
 	if (subswarms[p].swarm_ids[i] == q) {
 	    
 	  num_agent_sum += subswarms[p].num_min_agent;
@@ -80,25 +78,26 @@ void MinimaNicheSwarm::update_swarm_register_mpi () {
     MPI_Bcast(&(swarm_register[q].pos_best[0]), num_dim, MPI_DOUBLE,
 	      fitness_reduced.i, MPI_COMM_WORLD);
 
-    MPI_Allreduce(&(swarm_register[q].radius_sq), &rsq_min, 1,
-		  MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-    if (rsq_min == -1.0) { rsq_max = -1.0; }
+    // double rsq_min = -1.0;
+    // MPI_Allreduce(&(swarm_register[q].radius_sq), &rsq_min, 1,
+    // 		  MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+    // if (rsq_min == -1.0) { rsq_max = -1.0; }
     MPI_Allreduce(&rsq_max, &(swarm_register[q].radius_sq), 1,
 		  MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 
     MPI_Allreduce(&num_agent_sum, &(swarm_register[q].num_agent), 1,
 		  MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
-    /* printf("\t swarm_index_best = %i (rank %i) \n", swarm_index_best, mpi_rank); */
-    /* printf("rank to bcast = %i \n", fitness_reduced.i); */
-    /* if (swarm_register[q].fitness_best != -1.0) { */
-    /* 	printf("fitness_best[%i] = %f (rank %i) \n", q, swarm_register[q].fitness_best, mpi_rank); */
-    /* 	for (int d=0; d<num_dim; d++) { */
-    /* 	  printf("pos_best[%i][%i] = %f (rank %i) \n", q, d, */
-    /* 		 swarm_register[q].pos_best[d], mpi_rank); */
-    /* 	} */
-    /* 	printf("radius_sq[%i] = %f (rank %i) \n", q, swarm_register[q].radius_sq, mpi_rank); */
-    /* } */
+    // printf("swarm_index_best = %i (rank %i) \n", swarm_index_best, mpi_rank);
+    // printf("rank to bcast = %i \n", fitness_reduced.i);
+    // if (swarm_register[q].fitness_best != -1.0) {
+    // 	printf("fitness_best[%i] = %f (rank %i) \n", q, swarm_register[q].fitness_best, mpi_rank);
+    // 	for (int d=0; d<num_dim; d++) {
+    // 	  printf("pos_best[%i][%i] = %f (rank %i) \n", q, d,
+    // 		 swarm_register[q].pos_best[d], mpi_rank);
+    // 	}
+    // 	printf("radius_sq[%i] = %f (rank %i) \n \n", q, swarm_register[q].radius_sq, mpi_rank);
+    // }
 	    
   }
 
@@ -113,8 +112,7 @@ void MinimaNicheSwarm::update_swarm_register_mpi () {
   	    pos_best_globals[p][d] = swarm_register[q].pos_best[d];
   	  }
   	}
-  	if (swarm_register[q].radius_sq > swarm_rsq[p] &&
-  	    swarm_rsq[p] != -1.0) {
+  	if (swarm_register[q].radius_sq > swarm_rsq[p] && swarm_rsq[p] != -1.0) {
   	  swarm_rsq[p] = swarm_register[q].radius_sq;
   	}
       }
@@ -136,23 +134,25 @@ void MinimaNicheSwarm::merge_subswarms_mpi () {
 
       int num_min_agent_combine = subswarms[p].num_min_agent + swarm_register[q].num_agent;
 
-      /* printf("num agents to merge = %i\n", swarm_register[q].num_agent); */
-
       if (dist_sq < Rsum_sq &&
 	  swarm_rsq[p] != -1.0 && swarm_register[q].radius_sq != -1.0 &&
 	  num_min_agent_combine <= max_subswarm_size) {
 
-	/* printf("R sum squared = %f \n", Rsum_sq); */
-	/* printf("merging subswarms %i & %i \n", p, q); */
+	if (verbosity > 1)
+	  printf("merging subswarms %i & with id: %i \n", p, q);
 
 	subswarms[p].add_swarm_id( q );
 
 	swarm_rsq[p] = -1.0;
 	fitness_best_globals[p] = -1.0;
 
-	swarm_register[q].radius_sq = -1.0;
-	swarm_register[q].fitness_best = -1.0;
-	swarm_register[q].num_agent = num_min_agent_combine;
+	// for (int i=0; i<subswarms[p].num_ids; i++) {
+	//   int swarm_id = subswarms[p].swarm_ids[i];
+	int swarm_id = q;
+	swarm_register[swarm_id].radius_sq = -1.0;
+	swarm_register[swarm_id].fitness_best = -1.0;
+	swarm_register[swarm_id].num_agent = num_min_agent_combine;
+	// }
 
       }
     }
@@ -179,7 +179,7 @@ void MinimaNicheSwarm::add_agents_subswarms_mpi () {
       if (dist_sq < swarm_register[q].radius_sq && !joined[p]) {
 
 	if (verbosity > 1)
-	  printf("adding agent %i to subswarm %i \n", p, q);
+	  printf("adding agent %i to subswarm id: %i \n", p, q);
 
 	agent_base_t* agent_subswarm_bases = new agent_base_t[1];
 	agent_subswarm_bases[0] = agents[p].base;
@@ -211,29 +211,16 @@ void MinimaNicheSwarm::add_agents_subswarms_mpi () {
     }
   }
 
-  /* if (to_remove.size() > 0) { printf("removing agents that have joined subswarm \n"); } */
-
-  /* printf("indices to remove:"); */
-  /* for (int i = 0; i < to_remove.size(); i++) { */
-  /*   printf(" %i", to_remove[i]); */
-  /* } */
-  /* printf("\n"); */
-
   // Remove subswarm
   for (int i = to_remove.size() - 1; i >= 0; i--) {
-
     int q = to_remove[i];
     for (int j = 0; j < to_remove.size(); j++) {
       if (to_remove[j] > q) { to_remove[j]--; }
     }
-
-    /* printf("q = %i\n", q); */
     agents.erase (agents.begin() + q );
   }
 
   num_min_agent -= to_remove.size();
-
-  /* if (to_remove.size() > 0) { printf("removed agents that have joined subswarm \n"); } */
 
 }
 
