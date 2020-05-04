@@ -387,12 +387,17 @@ void TransitionStateOptimizer::run() {
 
 	all_converged = false;
 
+	iteration = 0;
+	step_num = 0;
+
 	// Allow for as many as 5 iterations on the same set of
 	int allowed_cycles = 5;
 	for (int it = 0; it < allowed_cycles; it++) {
 		std::string filestring = "ts" + std::to_string(min_one_id) + "_" + std::to_string(min_two_id) + "_" + std::to_string(it) + ".txt";
         char* filename = strdup(filestring.c_str());
 		fsave.open(filename);
+
+		initialize();
 
 		#pragma omp parallel
 	    {
@@ -462,14 +467,18 @@ void TransitionStateOptimizer::run() {
 	    if (fsave) {
 	        fsave.close();
 	    }
+
+	    reset();
 	}
 
 	if (all_converged) {
 		find_ts();
 	}
 
+#ifdef USE_MPI
 	send();
 	receive();
+#endif
 
 }
 

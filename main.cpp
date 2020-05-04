@@ -361,14 +361,12 @@ bool single_process = true;
 #endif // USE_MPI
 
 	if (single_process) {
-		TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes, savefreq, 0);
+		TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes, minima, savefreq, 0);
 		for (int i = 0; i < num_min; i++) {
 	        for (int j = 0; j < i; j++) {
 	            if (outpairs[i * num_min + j] == 1) {
 	                ts_opt.min_one = minima[i];
 	                ts_opt.min_two = minima[j];
-	                ts_opt.filename = filename;
-	                ts_opt.initialize();
                     auto t_start_ts_find = std::chrono::steady_clock::now();
 	                ts_opt.run();
 	                auto t_end_ts_find = std::chrono::steady_clock::now();
