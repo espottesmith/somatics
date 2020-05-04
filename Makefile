@@ -19,20 +19,24 @@ CXX = g++
 C = gcc
 endif
 
+DEPS = main.cpp common.h utils/math.h pes/pes.h pes/test_surfaces.h
+OBJS = main.o math.o test_surfaces.o common.o
+
 ifeq ($(USE_MPI), TRUE)
 ifeq ($(ON_CORI), TRUE)
 MPIDIR=/global/common/software/m3169/cori/openmpi/4.0.2/gnu/include
 CFLAGS += -I$(MPIDIR)
 endif
+
+DEPS += optimizers/ts_controller.h
+OBJS += ts_controller.o
+DEFINES += -DUSE_MPI=$(USE_MPI)
 endif
 
 ifeq ($(ON_CORI), TRUE)
 QHULLDIR=/global/homes/c/cmcc/.local
 CFLAGS += -I$(QHULLDIR)/include
 endif
-
-DEPS = main.cpp common.h utils/math.h pes/pes.h pes/test_surfaces.h
-OBJS = main.o math.o test_surfaces.o common.o
 
 ifeq ($(USE_MIN_FINDER), TRUE)
 DEPS += agents/minima_agent.h swarms/swarm.h optimizers/min_optimizer.h
@@ -134,6 +138,12 @@ ifeq ($(USE_QHULL), TRUE)
 voronoi.o: voronoi/voronoi.cpp common.h
 	@echo "Creating qhull object.."
 	${CXX} ${CFLAGS} -c voronoi/voronoi.cpp
+endif
+
+ifeq ($(USE_MPI), TRUE)
+ts_controller.o: optimizers/ts_controller.h optimizers/ts_controller.cpp common.h
+	@echo "Creating TS Controller object..."
+	${CXX} ${CFLAGS} -c optimizers/ts_controller.cpp
 endif
 
 clean:

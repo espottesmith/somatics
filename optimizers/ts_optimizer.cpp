@@ -172,6 +172,10 @@ void TransitionStateOptimizer::initialize() {
 			ownership[i] = i;
 		}
     }
+
+    active = true;
+    iteration = 0;
+    step_num = 0;
 }
 
 void TransitionStateOptimizer::update() {
@@ -578,7 +582,7 @@ void TransitionStateOptimizer::find_ts() {
 
 		}
 
-		return agents_one[agent_id].history_position[chosen_step_one];
+		transition_state = agents_one[agent_id].history_position[chosen_step_one];
 
 	} else {
 		for (int a = 0; a < num_agents_ts; a++) {
@@ -590,7 +594,7 @@ void TransitionStateOptimizer::find_ts() {
 			}
 		}
 
-		return agents_two[agent_id].history_position[chosen_step_two];
+		transition_state = agents_two[agent_id].history_position[chosen_step_two];
 	}
 }
 
@@ -603,16 +607,16 @@ void TransitionStateOptimizer::communicate() {
 }
 
 TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double distance_goal_in,
-		int num_steps_in, PotentialEnergySurface* pes_in, int save_freq_in
-		int rank_in){
+		int num_steps_in, PotentialEnergySurface* pes_in, std::vector<double*> minima_in,
+		int save_freq_in, int rank_in){
 
 	rank = rank_in;
+	minima = minima_in;
 
     step_size = step_size_in;
     max_step_size = 2 * step_size;
     min_step_size = step_size / 10;
     num_steps_allowed = num_steps_in;
-    step_num = 0;
     distance_goal = distance_goal_in;
 
     hill_score_one = 0.0;

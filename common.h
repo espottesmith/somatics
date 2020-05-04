@@ -60,7 +60,8 @@ typedef struct ts_link_t {
 	int minima_one;
 	int minima_two;
 	int owner;
-	int iteration;
+	int iterations;
+	int steps;
 	bool converged;
 	double* ts_position;
 } ts_link_t;

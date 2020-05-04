@@ -20,6 +20,7 @@ private:
 
     double* min_one;
     double* min_two;
+    std::vector<double*> minima;
 
     std::vector<TransitionStateAgent> agents_one;
     std::vector<double*> current_positions_one;
@@ -69,6 +70,7 @@ private:
     double min_distance_minima;
     int num_steps_allowed;
     int step_num;
+    int iteration;
 
     int* ownership;
     int threads;
@@ -79,17 +81,12 @@ private:
 public:
 
 	bool all_converged;
+	bool active;
     double* min_one;
     double* min_two;
     char* filename;
 
     double* transition_state;
-
-#ifdef USE_MPI
-    ts_link_t* rank_ts_map;
-    std::vector<minima_link_t> to_allocate;
-    std::vector<minima_link_t> transition_states;
-#endif
 
 	int get_step_num() { return step_num; }
 
@@ -104,7 +101,7 @@ public:
 #endif
 
     TransitionStateOptimizer(double step_size_in, double distance_goal_in, int num_steps_in,
-    		PotentialEnergySurface* pes_in, int save_freq_in, int rank_in);
+    		PotentialEnergySurface* pes_in, std::vector<double*> minima_in, int save_freq_in, int rank_in);
 
 };
 

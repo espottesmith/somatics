@@ -286,39 +286,106 @@ int main(int argc, char** argv) {
 
 #ifdef USE_TS_FINDER
 
+bool single_process = true;
+
 #ifdef USE_MPI
-	TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes, savefreq, mpi_rank);
-#else
-	TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes, savefreq, 0);
-	for (int i = 0; i < num_min; i++) {
-        for (int j = 0; j < i; j++) {
-            if (outpairs[i * num_min + j] == 1) {
-                for (int k = 0; k < 5; k++) {
-                    std::string filestring = "ts" + std::to_string(i) + "_" + std::to_string(j) + "_" + std::to_string(k) + ".txt";
-	                char* filename = strdup(filestring.c_str());
-	                ts_opt.min_one = minima[i];
-	                ts_opt.min_two = minima[j];
-	                ts_opt.filename = filename;
-                    auto t_start_ts_find = std::chrono::steady_clock::now();
-	                ts_opt.run();
-	                auto t_end_ts_find = std::chrono::steady_clock::now();
-	                std::chrono::duration<double> diff_ts = t_end_ts_find - t_start_ts_find;
-					double time_ts_find = diff_ts.count();
-	                std::cout << i << " " << j << " " << k << ": " << time_ts_find << std::endl;
-	                std::cout << ts_opt.get_step_num() << std::endl;
-	                if (ts_opt.all_converged) {
-	                	ts_opt.find_ts;
-	                    double* ts = ts_opt.transition_state;
-		                for (int d = 0; d < num_dim; d++) {
-		                    std::cout << ts[d] << " ";
+
+	if (num_procs != 1) {
+		single_process = false;
+
+		if (mpi_rank == 0) {
+			bool* active = new bool[num_procs];
+
+			for (int proc = 0; proc < num_procs; proc++) {
+				active[proc] = false;
+			}
+
+		    std::vector<minima_link_t> to_allocate;
+		    to_allocate.resize(0);
+
+		    ts_link_t* rank_ts_map = new ts_link_t[num_procs];
+
+		    int num_pairs = 0;
+		    for (int i = 0; i < num_min; i++) {
+		        for (int j = 0; j < i; j++) {
+					if (outpairs[i * num_min + j] == 1) {
+						num_pairs++;
+						minima_link_t link;
+						link.minima_one = i;
+						link.minima_two = j;
+						to_allocate.push_back(link);
+					}
+		        }
+		    }
+
+		    int allocated = 0;
+		    for (int pair = 0; pair < num_pairs; pair++) {
+		        for (int proc = 1; proc < num_procs; proc++) {
+					if (!active[proc]) {
+						active[proc] = true;
+
+						ts_link_t link;
+						link.minima_one = to_allocate[pair].minima_one;
+						link.minima_two = to_allocate[pair].minima_two;
+						link.owner = proc;
+						link.iteration = 0;
+						link.steps = 0;
+						link.converged = false;
+						rank_ts_map[proc] = link;
+
+						allocated++;
+					}
+		        }
+		    }
+
+		    to_allocate.erase(to_allocate.begin(), to_allocate.begin() + allocated);
+
+			TransitionStateController controller = TransitionStateController(num_procs,
+					minima, active, to_allocate, rank_ts_map);
+
+			controller.distribute();
+
+		} else {
+			TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes,
+					minima, savefreq, mpi_rank);
+
+			ts_opt.receive_initial();
+		}
+	}
+
+	if (single_process) {
+		TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes, savefreq, 0);
+		for (int i = 0; i < num_min; i++) {
+	        for (int j = 0; j < i; j++) {
+	            if (outpairs[i * num_min + j] == 1) {
+	                for (int k = 0; k < 5; k++) {
+	                    std::string filestring = "ts" + std::to_string(i) + "_" + std::to_string(j) + "_" + std::to_string(k) + ".txt";
+		                char* filename = strdup(filestring.c_str());
+		                ts_opt.min_one = minima[i];
+		                ts_opt.min_two = minima[j];
+		                ts_opt.filename = filename;
+		                ts_opt.initialize();
+	                    auto t_start_ts_find = std::chrono::steady_clock::now();
+		                ts_opt.run();
+		                auto t_end_ts_find = std::chrono::steady_clock::now();
+		                std::chrono::duration<double> diff_ts = t_end_ts_find - t_start_ts_find;
+						double time_ts_find = diff_ts.count();
+		                std::cout << i << " " << j << " " << k << ": " << time_ts_find << std::endl;
+		                std::cout << ts_opt.get_step_num() << std::endl;
+		                if (ts_opt.all_converged) {
+		                    ts_opt.find_ts();
+		                    double* ts = ts_opt.transition_state;
+			                for (int d = 0; d < num_dim; d++) {
+			                    std::cout << ts[d] << " ";
+			                }
+			                std::cout << std::endl;
+			                break;
 		                }
 		                std::cout << std::endl;
-		                break;
 	                }
-	                std::cout << std::endl;
-                }
-            }
-        }
+	            }
+	        }
+		}
 	}
 #endif // USE_MPI
 
