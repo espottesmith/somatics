@@ -5,6 +5,7 @@
 
 #include <utility>
 #include <iostream>
+#include <vector>
 #include "../agents/ts_agent.h"
 #include "../pes/pes.h"
 
@@ -16,7 +17,6 @@ private:
     double min_step_size;
     PotentialEnergySurface* pes;
     int save_freq;
-    char* filename;
 
     double* min_one;
     double* min_two;
@@ -65,24 +65,37 @@ private:
     int* ownership;
     int threads;
 
+    int rank;
+
 public:
 
 	bool all_converged;
+    double* min_one;
+    double* min_two;
+    char* filename;
+
+    double* transition_state;
+
+#ifdef USE_MPI
+    ts_link_t* rank_ts_map;
+    std::vector<minima_link_t> to_allocate;
+    std::vector<minima_link_t> transition_states;
+#endif
 
 	int get_step_num() { return step_num; }
 
+	void initialize();
     void update();
     bool check_convergence();
     void run();
-    double* find_ts();
+    void find_ts();
 
 #ifdef USE_MPI
     void communicate();
 #endif
 
     TransitionStateOptimizer(double step_size_in, double distance_goal_in, int num_steps_in,
-    		PotentialEnergySurface* pes_in, int save_freq_in,
-    		char *filename_in);
+    		PotentialEnergySurface* pes_in, int save_freq_in, int rank_in);
 
 };
 

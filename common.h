@@ -52,9 +52,18 @@ typedef struct swarm_prop_t {
 } swarm_prop_t;
 
 typedef struct minima_link_t {
-	double* minima_one;
-	double* minima_two;
-};
+	int minima_one;
+	int minima_two;
+} minima_link_t;
+
+typedef struct ts_link_t {
+	int minima_one;
+	int minima_two;
+	int owner;
+	int iteration;
+	bool converged;
+	double* ts_position;
+} ts_link_t;
 
 #ifdef USE_MPI
 extern MPI_Datatype AgentBaseMPI;

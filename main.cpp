@@ -269,20 +269,34 @@ int main(int argc, char** argv) {
 	delete[] min_agent_bases;
 #endif
 
-#ifdef USE_QHULL
-	int* outpairs = delaunay(minima);
-	int num_min = minima.size();
+	// At this point, everything has the minima vector
+
+#ifdef USE_MPI
+	if (mpi_rank == 0) {
+#endif
+		#ifdef USE_QHULL
+			int* outpairs = delaunay(minima);
+			int num_min = minima.size();
+		#endif
+#ifdef USE_MPI
+	}
 #endif
 
 #ifdef USE_TS_FINDER
+
+#ifdef USE_MPI
+	TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes, savefreq, mpi_rank);
+#else
+	TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes, savefreq, 0);
 	for (int i = 0; i < num_min; i++) {
-  	    for (int j = 0; j < i; j++) {
-  	    	if (outpairs[i * num_min + j] == 1) {
-  	    		for (int k = 0; k < 5; k++) {
-  	    			std::string filestring = "ts" + std::to_string(i) + "_" + std::to_string(j) + "_" + std::to_string(k) + ".txt";
+        for (int j = 0; j < i; j++) {
+            if (outpairs[i * num_min + j] == 1) {
+                for (int k = 0; k < 5; k++) {
+                    std::string filestring = "ts" + std::to_string(i) + "_" + std::to_string(j) + "_" + std::to_string(k) + ".txt";
 	                char* filename = strdup(filestring.c_str());
-                    TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes,
-                    		minima[i], minima[j], savefreq, filename);
+	                ts_opt.min_one = minima[i];
+	                ts_opt.min_two = minima[j];
+	                ts_opt.filename = filename;
                     auto t_start_ts_find = std::chrono::steady_clock::now();
 	                ts_opt.run();
 	                auto t_end_ts_find = std::chrono::steady_clock::now();
@@ -291,7 +305,8 @@ int main(int argc, char** argv) {
 	                std::cout << i << " " << j << " " << k << ": " << time_ts_find << std::endl;
 	                std::cout << ts_opt.get_step_num() << std::endl;
 	                if (ts_opt.all_converged) {
-	                    double* ts = ts_opt.find_ts();
+	                	ts_opt.find_ts;
+	                    double* ts = ts_opt.transition_state;
 		                for (int d = 0; d < num_dim; d++) {
 		                    std::cout << ts[d] << " ";
 		                }
@@ -299,11 +314,13 @@ int main(int argc, char** argv) {
 		                break;
 	                }
 	                std::cout << std::endl;
-  	    		}
-  	    	}
-  	    }
+                }
+            }
+        }
 	}
-#endif
+#endif // USE_MPI
+
+#endif // USE_TS_FINDER
 
 #ifdef USE_MPI
 	MPI_Finalize();
