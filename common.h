@@ -17,7 +17,7 @@
 #define UNIQUE_MIN_SIZE_LOWBOUND   3
 #define DIST_LIM                   1000000.00
 #define FITNESS_LIM                1000000.00
-#define verbosity                  2
+#define verbosity                  0
 
 extern int num_dim;
 extern int num_agents_min_tot;

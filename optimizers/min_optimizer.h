@@ -13,12 +13,9 @@ class MinimaOptimizer {
   int max_iter;
   int savefreq;
 
-  MinimaSwarm swarm;
+  MinimaOptimizer(double min_find_tol_in, int max_iter_in, int savefreq_in = 1);
 
-  MinimaOptimizer(MinimaSwarm swarm_in,
-		  double min_find_tol_in, int max_iter_in, int savefreq_in = 1);
-
-  void optimize (std::ofstream& fsave);
+  void optimize (MinimaSwarm& swarm, std::ofstream& fsave);
 
 };
 
@@ -32,13 +29,10 @@ class MinimaNicheOptimizer {
   int max_iter;
   int savefreq;
 
-  MinimaNicheSwarm swarm;
-
-  MinimaNicheOptimizer(MinimaNicheSwarm swarm_in,
-		       double min_find_tol_in, double unique_min_tol_in,
+  MinimaNicheOptimizer(double min_find_tol_in, double unique_min_tol_in,
 		       int max_iter_in, int savefreq_in = 1);
 
-  std::vector<double*> optimize (std::ofstream& fsave);
+  std::vector< std::vector<double> > optimize (MinimaNicheSwarm& swarm, std::ofstream& fsave);
   
 };
 

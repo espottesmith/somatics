@@ -146,3 +146,11 @@ void MinimaAgent::update_variance () {
   }
 
 }
+
+void MinimaAgent::free_mem () {
+
+  delete[] base.pos;
+  delete[] base.vel;
+  delete[] base.pos_best;
+
+}

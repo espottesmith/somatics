@@ -231,7 +231,7 @@ int main(int argc, char** argv) {
 	init_agents(min_agent_bases, num_agents_min, region);
 	std::cout << "Initialized agents" << std::endl;
 
-	int max_subswarm_size = 16;
+	int max_subswarm_size = 8;
 	double var_threshold = 0.0001;
 
 	MinimaNicheSwarm swarm(pes, min_agent_bases, num_agents_min,
@@ -239,23 +239,31 @@ int main(int argc, char** argv) {
 			       max_subswarm_size, 3, var_threshold);
 	std::cout << "Defined swarm" << std::endl;
 
-	MinimaNicheOptimizer optimizer (swarm, min_find_tol, unique_min_tol, max_iter, savefreq);
+	MinimaNicheOptimizer optimizer (min_find_tol, unique_min_tol, max_iter, savefreq);
 	std::cout << "Defined optimizer" << std::endl;
 
 	auto t_start_min_find = std::chrono::steady_clock::now();
 
-	std::vector<double*> minima = optimizer.optimize(fsave);
+	std::vector< std::vector<double> > minima_vec = optimizer.optimize(swarm, fsave);
 	
 	auto t_end_min_find = std::chrono::steady_clock::now();
 	std::chrono::duration<double> diff = t_end_min_find - t_start_min_find;
 	double time_min_find = diff.count();
 
+	std::vector< double* > minima( minima_vec.size() );
+	for (int i=0; i<minima.size(); i++) {
+	  minima[i] = new double[num_dim];
+	  for (int d=0; d<num_dim; d++) {
+	    minima[i][d] = minima_vec[i][d];
+	  }
+	}
+
 	if (verbosity > 0) {
 	  printf("minima: \n");
-	  for (int i=0; i<minima.size(); i++) {
+	  for (int i=0; i<minima_vec.size(); i++) {
 	    printf("\t");
 	    for (int d=0; d<num_dim; d++) {
-	      printf("%f ", minima[i][d]);
+	      printf("%f ", minima_vec[i][d]);
 	    }
 	    printf("\n");
 	  }
@@ -266,7 +274,19 @@ int main(int argc, char** argv) {
 	if (fsave) {
 		fsave.close();
 	}
+
+	// swarm.free_mem();
+
+	for (int a = 0; a < num_agents_min; a++) {
+		delete[] min_agent_bases[a].pos;
+		delete[] min_agent_bases[a].vel;
+		delete[] min_agent_bases[a].pos_best;
+	}
 	delete[] min_agent_bases;
+
+	delete[] region.lo;
+	delete[] region.hi;
+	
 #endif
 
 #ifdef USE_QHULL
@@ -307,5 +327,5 @@ int main(int argc, char** argv) {
 
 #ifdef USE_MPI
 	MPI_Finalize();
-#endif
+#endif	
 }

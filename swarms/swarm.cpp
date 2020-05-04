@@ -175,6 +175,15 @@ void MinimaSwarm::move_swarm () {
 
 }
 
+void MinimaSwarm::free_mem () {
+  delete[] region.lo;
+  delete[] region.hi;
+
+  for (int i = 0; i < num_min_agent; i++) {
+    agents[i].free_mem();
+  }
+}
+
 MinimaNicheSwarm::MinimaNicheSwarm (PotentialEnergySurface* pot_energy_surf_in,
 				    agent_base_t* agent_bases, int num_min_agent_in,
 				    double inertia_in, double cognit_in, double social_in,
@@ -273,6 +282,13 @@ void MinimaNicheSwarm::evolve_subswarms () {
 
 void MinimaNicheSwarm::evolve_niche_agents () {
 
+  double fitness_best_globals_old[num_subswarm];
+
+  for (int i = 0; i < num_subswarm; i++) {
+    subswarms[i].index_best = -1;
+    fitness_best_globals_old[i] = fitness_best_globals[i];
+  }
+  
 #pragma omp parallel default(shared)
   {
 #pragma omp for
@@ -281,14 +297,13 @@ void MinimaNicheSwarm::evolve_niche_agents () {
       int swarm_idx = swarm_map[i];
       int agent_idx = agent_map[i];
 
+      // printf("agent_idx = %i, swarm_idx = %i \n", agent_idx, swarm_idx);
+      
       if (swarm_idx >= 0) {
 	// Agents in subswarms
 
 	// Update fitness
 	subswarms[swarm_idx].agents[agent_idx].fitness_calc(pot_energy_surf);
-      
-	subswarms[swarm_idx].index_best = -1;
-	double fitness_best_global_old = fitness_best_globals[swarm_idx];
 	
 #pragma omp critical
 	{
@@ -302,32 +317,7 @@ void MinimaNicheSwarm::evolve_niche_agents () {
 	    }
 	    fitness_best_globals[swarm_idx] = subswarms[swarm_idx].agents[agent_idx].base.fitness;
 	  }
-
-	  if (fitness_best_global_old == fitness_best_globals[swarm_idx]) {
-	    subswarms[swarm_idx].num_failure++;
-	    subswarms[swarm_idx].num_success = 0;
-	  } else {
-	    subswarms[swarm_idx].num_success++;
-	    subswarms[swarm_idx].num_failure = 0;
-	  }
-
-	  if (subswarms[swarm_idx].num_failure > subswarms[swarm_idx].failure_limit) {
-	    subswarms[swarm_idx].rho *= 0.5;
-	  } else if (subswarms[swarm_idx].num_success > subswarms[swarm_idx].success_limit) {
-	    subswarms[swarm_idx].rho *= 2.0;
-	  }
 	}
-
-	// Update velocity
-	if (agent_idx == subswarms[swarm_idx].index_best) {
-	  subswarms[swarm_idx].agents[subswarms[swarm_idx].index_best].update_velocity_best(pos_best_globals[swarm_idx],
-								       subswarms[swarm_idx].rho);
-	} else {
-	  subswarms[swarm_idx].agents[ agent_idx].update_velocity(pos_best_globals[swarm_idx]);
-	}
-
-	// Move agent
-	subswarms[swarm_idx].agents[agent_idx].update_position(region);
       
       } else {
 	// Cognition-only agents
@@ -346,6 +336,48 @@ void MinimaNicheSwarm::evolve_niche_agents () {
     }
   }
 
+  for (int i = 0; i < num_subswarm; i++) {
+    if (fitness_best_globals_old[i] == fitness_best_globals[i]) {
+      subswarms[i].num_failure++;
+      subswarms[i].num_success = 0;
+    } else {
+      subswarms[i].num_success++;
+      subswarms[i].num_failure = 0;
+    }
+
+    if (subswarms[i].num_failure > subswarms[i].failure_limit) {
+      subswarms[i].rho *= 0.5;
+    } else if (subswarms[i].num_success > subswarms[i].success_limit) {
+      subswarms[i].rho *= 2.0;
+    }
+  }
+
+#pragma omp parallel default(shared)
+  {
+#pragma omp for
+    for (int i = 0; i < agent_map.size(); i++) {
+
+      int swarm_idx = swarm_map[i];
+      int agent_idx = agent_map[i];
+
+      if (swarm_idx >= 0) {
+	// Agents in subswarms
+
+	// Update velocity
+	if (agent_idx == subswarms[swarm_idx].index_best) {
+	  subswarms[swarm_idx].agents[subswarms[swarm_idx].index_best].update_velocity_best(pos_best_globals[swarm_idx],
+											    subswarms[swarm_idx].rho);
+	} else {
+	  subswarms[swarm_idx].agents[agent_idx].update_velocity(pos_best_globals[swarm_idx]);
+	}
+
+	// Move agent
+	subswarms[swarm_idx].agents[agent_idx].update_position(region);
+      }
+      
+    }
+  }
+
   compute_radii_subswarms ();
 
 }
@@ -357,8 +389,6 @@ void MinimaNicheSwarm::compute_radii_subswarms () {
     // Compute swarm radius
     double max_dist_sq = -1.0;
     for (int j = 0; j < subswarms[i].num_min_agent; j++) {
-
-      // printf("(i,j) = (%i, %i) \n", i, j);
 
       double dist_sq = compute_dist_sq(subswarms[i].agents[j].base.pos,
 				       pos_best_globals[i]);
@@ -379,7 +409,7 @@ void MinimaNicheSwarm::compute_radii_subswarms () {
 void MinimaNicheSwarm::merge_subswarms () {
 
 #ifdef USE_MPI
-  // merge_subswarms_mpi();
+  merge_subswarms_mpi();
 #endif
 
   std::vector<bool> merged;
@@ -464,10 +494,14 @@ void MinimaNicheSwarm::merge_subswarms () {
     for (int j = 0; j < to_remove.size(); j++) {
       if (to_remove[j] > q) { to_remove[j]--; }
     }
+    subswarms[q].free_mem();
     subswarms.erase (                       subswarms.begin() + q );
     swarm_rsq.erase (                       swarm_rsq.begin() + q );
     fitness_best_globals.erase ( fitness_best_globals.begin() + q );
     pos_best_globals.erase (         pos_best_globals.begin() + q );
+    for (int j = 0; j < swarm_map.size(); j++) {
+      if (swarm_map[j] > q) { swarm_map[j]--; }
+    }
   }
 
   num_subswarm -= to_remove.size();
@@ -524,7 +558,11 @@ void MinimaNicheSwarm::add_agents_subswarms () {
     for (int j = 0; j < to_remove.size(); j++) {
       if (to_remove[j] > q) { to_remove[j]--; }
     }
+    agents[q].free_mem();
     agents.erase (agents.begin() + q );
+    for (int i = 0; i < swarm_map.size(); i++) {
+      if (agent_map[i] > q && swarm_map[i] == -1) { agent_map[i]--; }
+    }
   }
 
   num_min_agent -= to_remove.size();
@@ -543,12 +581,12 @@ void MinimaNicheSwarm::form_subswarms () {
   std::vector< double >  pos_to_form (0);
   std::vector< int >     swarm_ids   (0);
 #endif
-    
+  
   for (int p = 0; p < num_min_agent; p++) {
     agents[p].update_variance();
       
     if (agents[p].variance < var_threshold &&
-	agents[p].variance != -1.0 && !joined[p]) {
+	agents[p].variance != -1.0) {
 
       idx_to_form.push_back(p);
 #ifdef USE_MPI
@@ -556,7 +594,7 @@ void MinimaNicheSwarm::form_subswarms () {
 	pos_to_form.push_back( agents[p].base.pos[d] );
       }
 #endif
-	
+      
     }
   }
 
@@ -584,17 +622,10 @@ void MinimaNicheSwarm::form_subswarms () {
       int part_idx = map_to_form[mpi_rank][i].part_id;
       idx_to_join[i] = part_idx;
       dists.push_back( distances[mpi_rank][i].d );
-      if (part_idx != -1) {
-	if (!joined[part_idx]) {
-	  to_remove.push_back( part_idx );
-	  joined[part_idx] = true;
-	}
-      }
     } else {
       // Case: Partner belongs to ANOTHER process
       idx_to_join[i] = -1;
       dists.push_back( distances[mpi_rank][i].d );
-	
     }
     id_to_link[i] = map_to_form[mpi_rank][i].swarm_id;
   }
@@ -613,16 +644,7 @@ void MinimaNicheSwarm::form_subswarms () {
       }
     }
   }
-
-  for (int i = 0; i < idx_to_form.size(); i++) {
-    int part_idx = idx_to_form[i];
-    if (!joined[part_idx]) {
-      to_remove.push_back( part_idx );
-      joined[part_idx] = true;
-    }
-  }
-
-    
+  
 #else
 
   for (int i = 0; i < idx_to_form.size(); i++) {
@@ -634,7 +656,8 @@ void MinimaNicheSwarm::form_subswarms () {
     int index_closest = -1;
       
     for (int q = 0; q < num_min_agent; q++) {
-      if (agents[p].base.id != agents[q].base.id) {
+      if (p != q) {
+      // if (agents[p].base.id != agents[q].base.id) {
 
 	// compute distance
 	double dist_sq = compute_dist_sq (agents[p].base.pos, agents[q].base.pos);
@@ -647,12 +670,10 @@ void MinimaNicheSwarm::form_subswarms () {
       }
     }
 
-    if (index_closest != -1 && !joined[p] && !joined[index_closest]) {
+    if (index_closest != -1) {
       idx_to_join[i] = index_closest;
-      to_remove.push_back(p);
-      to_remove.push_back(index_closest);
-      joined[p] = true;
-      joined[index_closest] = true;
+    } else {
+      idx_to_join[i] = -1;
     }
 
   }
@@ -672,38 +693,50 @@ void MinimaNicheSwarm::form_subswarms () {
 
     if (idx_to_form[i] != -1) {
       if (idx_to_join[i] != -1) {
+	if (!joined[idx_to_form[i]] && !joined[idx_to_join[i]]) {
 
-	addswarm = true;
-	  
-	int p = idx_to_form[i];
-	int q = idx_to_join[i];
-#ifdef USE_MPI
-	min_dist_sq = dists[i];
-#else
-	min_dist_sq = compute_dist_sq ( agents[p].base.pos, agents[q].base.pos );
-#endif
+	  addswarm = true;
 	
-	// Form subswarm from agent pair
-	num_subswarm_agent = 2;
-	agent_subswarm_bases = new agent_base_t[num_subswarm_agent];
-	agent_subswarm_bases[0] = agents[p].base;
-	agent_subswarm_bases[1] = agents[q].base;
+	  int p = idx_to_form[i];
+	  int q = idx_to_join[i];
+#ifdef USE_MPI
+	  min_dist_sq = dists[i];
+#else
+	  min_dist_sq = compute_dist_sq ( agents[p].base.pos, agents[q].base.pos );
+#endif
+	  
+	  // Form subswarm from agent pair
+	  num_subswarm_agent = 2;
+	  agent_subswarm_bases = new agent_base_t[num_subswarm_agent];
+	  agent_subswarm_bases[0] = agents[p].base;
+	  agent_subswarm_bases[1] = agents[q].base;
 
+	  to_remove.push_back( idx_to_form[i] );
+	  joined[ idx_to_form[i] ] = true;
+	  to_remove.push_back( idx_to_join[i] );
+	  joined[ idx_to_join[i] ] = true;
+
+	}
 #ifdef USE_MPI
       } else {
 
 	if (id_to_link[i] != -1) {
+	  if (!joined[idx_to_form[i]]) {
 
-	  addswarm = true;
+	    addswarm = true;
 
-	  int p = idx_to_form[i];
-	  min_dist_sq = dists[i];
+	    int p = idx_to_form[i];
+	    min_dist_sq = dists[i];
 	
-	  // Form subswarm from agent pair
-	  num_subswarm_agent = 1;
-	  agent_subswarm_bases = new agent_base_t[num_subswarm_agent];
-	  agent_subswarm_bases[0] = agents[p].base;
+	    // Form subswarm from agent pair
+	    num_subswarm_agent = 1;
+	    agent_subswarm_bases = new agent_base_t[num_subswarm_agent];
+	    agent_subswarm_bases[0] = agents[p].base;
 
+	    to_remove.push_back( idx_to_form[i] );
+	    joined[ idx_to_form[i] ] = true;
+
+	  }
 	}
 #endif
       }
@@ -731,6 +764,8 @@ void MinimaNicheSwarm::form_subswarms () {
 	  swarm_map[agent_subswarm_bases[k].id] = num_subswarm - 1;
 	  agent_map[agent_subswarm_bases[k].id] = k;
 	}
+
+	delete[] agent_subswarm_bases;
 	
 	// printf("formed new subswarm \n");
 
@@ -744,18 +779,36 @@ void MinimaNicheSwarm::form_subswarms () {
     }
   }
 
-  // Remove subswarm
+  // Remove agents
   for (int i = to_remove.size() - 1; i >= 0; i--) {
-      
+    
     int q = to_remove[i];
     for (int j = 0; j < to_remove.size(); j++) {
       if (to_remove[j] > q) { to_remove[j]--; }
     }
     if (q >= 0) {
+      agents[q].free_mem();
       agents.erase (agents.begin() + q );
+      for (int i = 0; i < swarm_map.size(); i++) {
+	if (agent_map[i] > q && swarm_map[i] == -1) { agent_map[i]--; }
+      }
     }
+    
   }
-
+  
   num_min_agent -= to_remove.size();
   
+}
+
+void MinimaNicheSwarm::free_mem () {
+  delete[] region.lo;
+  delete[] region.hi;
+
+  for (int i = 0; i < num_min_agent; i++) {
+    agents[i].free_mem();
+  }
+
+  for (int j = 0; j < num_subswarm; j++) {
+    subswarms[j].free_mem();
+  }
 }

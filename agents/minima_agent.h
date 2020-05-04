@@ -29,6 +29,7 @@ class MinimaAgent {
   void update_velocity_best (std::vector<double> pos_best_global, double rho);
   void update_position (region_t region);
   void update_variance ();
+  void free_mem();
 
 };
 

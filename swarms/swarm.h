@@ -56,6 +56,7 @@ class MinimaSwarm {
 #ifdef USE_MPI
   void add_swarm_id (int id);
 #endif
+  void free_mem ();
 
 };
 
@@ -110,6 +111,7 @@ class MinimaNicheSwarm : public MinimaSwarm {
 				  std::vector< int > swarm_ids,
 				  int size_to_form );
 #endif
+  void free_mem ();
 
 };
 
