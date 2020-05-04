@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
 		std::cout << "-nts <int>: set number of agents for identifying TS; default 1" << std::endl;
 		std::cout << "-nthreads <int>: set number of threads for a given process (using OpenMP); default 1" << std::endl;
 		std::cout << "-mol <filename>: *.xyz file representing an input molecular structure" << std::endl;
-		std::cout << "-surf <str>: name of a test surface (one of Muller_Brown, Halgren_Lipscomb, Cerjan_Miller, Quapp_Wolfe_Schlegel, Culot_Dive_Nguyen_Ghuysen" << std::endl;
+		std::cout << "-surf <str>: name of a test surface (one of Muller_Brown, Halgren_Lipscomb, Quapp_Wolfe_Schlegel, Culot_Dive_Nguyen_Ghuysen" << std::endl;
 		std::cout << "-mtol <int>: energy tolerance for identification of a minimum. Ex: -mtol 8 (default) means that the tolerance will be 1.0 * 10^-8" << std::endl;
 		std::cout << "-utol <int>: distance tolerance for determination of unique minima. Ex: -utol 6 (default) means that the tolerance will be 1.0 * 10^-6" << std::endl;
 		std::cout << "-iter <int>: maximum number of iterations for PSO algorithms (same for minima and TS); default is 250" << std::endl;
@@ -267,6 +267,8 @@ int main(int argc, char** argv) {
 		fsave.close();
 	}
 	delete[] min_agent_bases;
+
+	std::cout << "# minima: " << minima.size() << std::endl;
 #endif
 
 	// At this point, everything has the minima vector
