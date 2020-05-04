@@ -2,6 +2,7 @@
 #include <limits>
 #include <stdio.h>
 #include <cstring>
+#include <string.h>
 #include <fstream>
 #include <iostream>
 #include <utility>
@@ -14,6 +15,31 @@
 #include "../pes/pes.h"
 #include "../utils/math.h"
 #include "../common.h"
+
+/*
+ * TAGS:
+ * 0 - sending (int) have_work (always controller -> optimizer)
+ * 1 - sending (minima_link_t) link (always controller -> optimizer)
+ * 2 - sending (int) convergence (always optimizer -> controller)
+ * 3 - sending (double* w/ dimension num_dim) TS (always optimizer -> controller)
+ */
+
+void TransitionStateOptimizer::reset() {
+
+    agents_one.resize(0);
+    current_positions_one.resize(0);
+    average_grad_norms_one.resize(0);
+	history_hill_scores_one.resize(0);
+    history_average_positions_one.resize(0);
+    history_average_energies_one.resize(0);
+
+    agents_two.resize(0);
+    current_positions_two.resize(0);
+    average_grad_norms_two.resize(0);
+    history_hill_scores_two.resize(0);
+    history_average_positions_two.resize(0);
+    history_average_energies_two.resize(0);
+}
 
 void TransitionStateOptimizer::initialize() {
 	double upper_bound, lower_bound;
@@ -125,56 +151,6 @@ void TransitionStateOptimizer::initialize() {
 
     }
 
-    ownership = new int[num_agents_ts * 2];
-    for (int a = 0; a < num_agents_ts * 2; a++) {
-    	ownership[a] = 0;
-    }
-
-    omp_set_dynamic(0);
-	omp_set_num_threads(num_threads);
-    int max_num_threads = omp_get_max_threads();
-    int agents_per_thread = 1;
-    if (max_num_threads > num_agents_ts * 2) {
-		omp_set_num_threads(num_agents_ts * 2);
-		threads = num_agents_ts * 2;
-		for (int i = 0; i < num_agents_ts * 2; i++) {
-			ownership[i] = i;
-		}
-    } else if (max_num_threads < num_agents_ts * 2) {
-    	agents_per_thread = (int) (num_agents_ts * 2) / max_num_threads;
-    	threads = max_num_threads;
-    	int remainder = (num_agents_ts * 2) % (agents_per_thread * max_num_threads);
-
-    	int point = 0;
-    	int this_thread = 0;
-    	for (int i = 0 ; i < num_agents_ts * 2; i++) {
-			if (point < remainder) {
-				if (this_thread < agents_per_thread + 1) {
-					ownership[i] = point;
-					this_thread++;
-				} else {
-					point += 1;
-					this_thread = 0;
-				}
-			} else {
-				if (this_thread < agents_per_thread) {
-					ownership[i] = point;
-					this_thread++;
-				} else {
-					point += 1;
-					this_thread = 0;
-				}
-			}
-    	}
-    } else {
-    	threads = num_agents_ts * 2;
-    	for (int i = 0; i < num_agents_ts * 2; i++) {
-			ownership[i] = i;
-		}
-    }
-
-    active = true;
-    iteration = 0;
     step_num = 0;
 }
 
@@ -392,7 +368,6 @@ void TransitionStateOptimizer::update() {
 
 bool TransitionStateOptimizer::check_convergence(){
     bool swarms_close = false;
-    bool take_another_step = true;
 
     // The two swarms should be close to one another
     if (distance(average_position_one, average_position_two, num_dim) <= distance_goal) {
@@ -409,75 +384,93 @@ bool TransitionStateOptimizer::check_convergence(){
 
 void TransitionStateOptimizer::run() {
     std::ofstream fsave;
-    fsave.open(filename);
 
 	all_converged = false;
 
-#pragma omp parallel
-    {
-    	bool converged = false;
-		int thread_num = omp_get_thread_num();
+	// Allow for as many as 5 iterations on the same set of
+	int allowed_cycles = 5;
+	for (int it = 0; it < allowed_cycles; it++) {
+		std::string filestring = "ts" + std::to_string(min_one_id) + "_" + std::to_string(min_two_id) + "_" + std::to_string(it) + ".txt";
+        char* filename = strdup(filestring.c_str());
+		fsave.open(filename);
 
-	    for (int s = 0; s < num_steps_allowed; s++) {
+		#pragma omp parallel
+	    {
+	        bool converged = false;
+			int thread_num = omp_get_thread_num();
 
-	    	if (converged) {
-	    		s = num_steps_allowed;
-	    	}
+		    for (int s = 0; s < num_steps_allowed; s++) {
 
-// #pragma omp master
-//             std::cout << "TSOptimizer (run): STEP NUMBER " << step_num << std::endl;
+		        if (converged) {
+		            s = num_steps_allowed;
+		        }
 
-	        update();
-#pragma omp barrier
+			// #pragma omp master
+			//             std::cout << "TSOptimizer (run): STEP NUMBER " << step_num << std::endl;
 
-            converged = check_convergence();
+		        update();
+			#pragma omp barrier
 
-#pragma omp master
-	        {
-	        	if (converged) {
-	        		all_converged = true;
-	        	}
-		        // Print to file output
+	            converged = check_convergence();
 
-		        if (step_num % save_freq == 0 && fsave.good()) {
+			#pragma omp master
+		        {
+		            if (converged) {
+		                all_converged = true;
+		            }
+			        // Print to file output
 
-			    if (first) {
-			        fsave << num_agents_ts * 2 << " ";
-			        for (int d = 0; d < num_dim; d++) {
-			            fsave << pes->get_lower_bound(d) << " " << pes->get_upper_bound(d) << " ";
-			        }
-			        fsave << std::endl;
-			        first = false;
-			    }
+			        if (step_num % save_freq == 0 && fsave.good()) {
 
-			    for (int i = 0; i < num_agents_ts; ++i) {
-			        for (int d = 0; d < num_dim; d++) {
-			            fsave << current_positions_one[i][d] << " ";
-			        }
-			        fsave << std::endl;
-			    }
+				    if (first) {
+				        fsave << num_agents_ts * 2 << " ";
+				        for (int d = 0; d < num_dim; d++) {
+				            fsave << pes->get_lower_bound(d) << " " << pes->get_upper_bound(d) << " ";
+				        }
+				        fsave << std::endl;
+				        first = false;
+				    }
 
-			    for (int i = 0; i < num_agents_ts; ++i) {
-			        for (int d = 0; d < num_dim; d++) {
-			            fsave << current_positions_two[i][d] << " ";
-			        }
-			        fsave << std::endl;
-			    }
-			}
-		        step_num++;
-	        }
+				    for (int i = 0; i < num_agents_ts; ++i) {
+				        for (int d = 0; d < num_dim; d++) {
+				            fsave << current_positions_one[i][d] << " ";
+				        }
+				        fsave << std::endl;
+				    }
+
+				    for (int i = 0; i < num_agents_ts; ++i) {
+				        for (int d = 0; d < num_dim; d++) {
+				            fsave << current_positions_two[i][d] << " ";
+				        }
+				        fsave << std::endl;
+				    }
+				}
+			        step_num++;
+		        }
+		    }
+		}
+
+	    if (all_converged) {
+			std::cout << "PATH CONSTRUCTION SUCCEEDED" << std::endl;
+			iteration = 0;
+			break;
+	    } else {
+	        std::cout << "PATH CONSTRUCTION FAILED" << std::endl;
+	        iteration++;
+	    }
+
+	    if (fsave) {
+	        fsave.close();
 	    }
 	}
 
-    if (all_converged) {
-		std::cout << "PATH CONSTRUCTION SUCCEEDED" << std::endl;
-    } else {
-        std::cout << "PATH CONSTRUCTION FAILED" << std::endl;
-    }
+	if (all_converged) {
+		find_ts();
+	}
 
-    if (fsave) {
-        fsave.close();
-    }
+	send();
+	receive();
+
 }
 
 void TransitionStateOptimizer::find_ts() {
@@ -598,13 +591,45 @@ void TransitionStateOptimizer::find_ts() {
 	}
 }
 
-void TransitionStateOptimizer::communicate() {
-	if (rank == 0) {
+#ifdef USE_MPI
 
+void TransitionStateOptimizer::receive() {
+	// First, learn if there's work to do
+	int work_to_do;
+	MPI_Recv(&work_to_do, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+	// If there is, then prepare to do that work
+	if (work_to_do) {
+		active = true;
+
+		minima_link_t link;
+
+		MPI_Recv(&link, 1, MinimaLinkMPI, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+		min_one_id = link.minima_one;
+		min_two_id = link.minimum_two;
+
+		min_one = minima[min_one_id];
+		min_two = minima[min_two_id];
 	} else {
-
+		active = false;
 	}
 }
+
+void TransitionStateOptimizer::send() {
+	// First, let the controller know if we've converged or failed
+	int success = 0;
+	if (all_converged) {
+		success = 1;
+	}
+	MPI_Send(&success, 1, MPI_INT, 0, 2, MPI_COMM_WORLD);
+
+	if (all_converged) {
+		MPI_Send((void*) transition_state, num_dim, MPI_DOUBLE, 0, 3, MPI_COMM_WORLD);
+	}
+}
+
+#endif // USE_MPI
 
 TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double distance_goal_in,
 		int num_steps_in, PotentialEnergySurface* pes_in, std::vector<double*> minima_in,
@@ -649,9 +674,66 @@ TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double d
     history_hill_scores_one.resize(0);
     history_hill_scores_two.resize(0);
 
+    history_average_positions_one.resize(0);
+    history_average_energies_one.resize(0);
+
+    history_average_positions_two.resize(0);
+    history_average_energies_two.resize(0);
+
     pes = pes_in;
 
     save_freq = save_freq_in;
 
     all_converged = false;
+
+    iteration = 0;
+    step_num = 0;
+
+    ownership = new int[num_agents_ts * 2];
+    for (int a = 0; a < num_agents_ts * 2; a++) {
+    	ownership[a] = 0;
+    }
+
+    omp_set_dynamic(0);
+	omp_set_num_threads(num_threads);
+    int max_num_threads = omp_get_max_threads();
+    int agents_per_thread = 1;
+    if (max_num_threads > num_agents_ts * 2) {
+		omp_set_num_threads(num_agents_ts * 2);
+		threads = num_agents_ts * 2;
+		for (int i = 0; i < num_agents_ts * 2; i++) {
+			ownership[i] = i;
+		}
+    } else if (max_num_threads < num_agents_ts * 2) {
+    	agents_per_thread = (int) (num_agents_ts * 2) / max_num_threads;
+    	threads = max_num_threads;
+    	int remainder = (num_agents_ts * 2) % (agents_per_thread * max_num_threads);
+
+    	int point = 0;
+    	int this_thread = 0;
+    	for (int i = 0 ; i < num_agents_ts * 2; i++) {
+			if (point < remainder) {
+				if (this_thread < agents_per_thread + 1) {
+					ownership[i] = point;
+					this_thread++;
+				} else {
+					point += 1;
+					this_thread = 0;
+				}
+			} else {
+				if (this_thread < agents_per_thread) {
+					ownership[i] = point;
+					this_thread++;
+				} else {
+					point += 1;
+					this_thread = 0;
+				}
+			}
+    	}
+    } else {
+    	threads = num_agents_ts * 2;
+    	for (int i = 0; i < num_agents_ts * 2; i++) {
+			ownership[i] = i;
+		}
+    }
 }

@@ -349,45 +349,48 @@ bool single_process = true;
 			TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes,
 					minima, savefreq, mpi_rank);
 
-			ts_opt.receive_initial();
+			ts_opt.receive();
+
+			while (ts_opt.active){
+				ts_opt.initialize();
+				ts_opt.run();
+				ts_opt.reset();
+			}
 		}
 	}
+#endif // USE_MPI
 
 	if (single_process) {
 		TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes, savefreq, 0);
 		for (int i = 0; i < num_min; i++) {
 	        for (int j = 0; j < i; j++) {
 	            if (outpairs[i * num_min + j] == 1) {
-	                for (int k = 0; k < 5; k++) {
-	                    std::string filestring = "ts" + std::to_string(i) + "_" + std::to_string(j) + "_" + std::to_string(k) + ".txt";
-		                char* filename = strdup(filestring.c_str());
-		                ts_opt.min_one = minima[i];
-		                ts_opt.min_two = minima[j];
-		                ts_opt.filename = filename;
-		                ts_opt.initialize();
-	                    auto t_start_ts_find = std::chrono::steady_clock::now();
-		                ts_opt.run();
-		                auto t_end_ts_find = std::chrono::steady_clock::now();
-		                std::chrono::duration<double> diff_ts = t_end_ts_find - t_start_ts_find;
-						double time_ts_find = diff_ts.count();
-		                std::cout << i << " " << j << " " << k << ": " << time_ts_find << std::endl;
-		                std::cout << ts_opt.get_step_num() << std::endl;
-		                if (ts_opt.all_converged) {
-		                    ts_opt.find_ts();
-		                    double* ts = ts_opt.transition_state;
-			                for (int d = 0; d < num_dim; d++) {
-			                    std::cout << ts[d] << " ";
-			                }
-			                std::cout << std::endl;
-			                break;
+	                ts_opt.min_one = minima[i];
+	                ts_opt.min_two = minima[j];
+	                ts_opt.filename = filename;
+	                ts_opt.initialize();
+                    auto t_start_ts_find = std::chrono::steady_clock::now();
+	                ts_opt.run();
+	                auto t_end_ts_find = std::chrono::steady_clock::now();
+	                std::chrono::duration<double> diff_ts = t_end_ts_find - t_start_ts_find;
+					double time_ts_find = diff_ts.count();
+	                std::cout << i << " " << j << " " << ": " << time_ts_find << std::endl;
+	                std::cout << "Iterations: " << ts_opt.get_iteration() << std::endl;
+	                std::cout << "Steps on final iteration: " << ts_opt.get_step_num() << std::endl;
+	                if (ts_opt.all_converged) {
+	                    double* ts = ts_opt.transition_state;
+		                for (int d = 0; d < num_dim; d++) {
+		                    std::cout << ts[d] << " ";
 		                }
 		                std::cout << std::endl;
+		                break;
 	                }
+	                std::cout << std::endl;
+	                ts_opt.reset();
 	            }
 	        }
 		}
 	}
-#endif // USE_MPI
 
 #endif // USE_TS_FINDER
 

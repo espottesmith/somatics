@@ -22,7 +22,6 @@ private:
 
 public:
 	void distribute();
-	void distribute_one(int process);
 	void listen();
 
 	TransitionStateController(int processes_in, std::vector<double*> minima_in,

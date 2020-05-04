@@ -18,8 +18,6 @@ private:
     PotentialEnergySurface* pes;
     int save_freq;
 
-    double* min_one;
-    double* min_two;
     std::vector<double*> minima;
 
     std::vector<TransitionStateAgent> agents_one;
@@ -82,6 +80,8 @@ public:
 
 	bool all_converged;
 	bool active;
+    int min_one_id;
+    int min_two_id;
     double* min_one;
     double* min_two;
     char* filename;
@@ -89,7 +89,9 @@ public:
     double* transition_state;
 
 	int get_step_num() { return step_num; }
+	int get_iteration() { return iteration; }
 
+	void reset();
 	void initialize();
     void update();
     bool check_convergence();
@@ -97,7 +99,8 @@ public:
     void find_ts();
 
 #ifdef USE_MPI
-    void communicate();
+    void receive();
+    void send();
 #endif
 
     TransitionStateOptimizer(double step_size_in, double distance_goal_in, int num_steps_in,
