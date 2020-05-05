@@ -348,6 +348,7 @@ bool single_process = true;
 						rank_ts_map[proc] = link;
 
 						allocated++;
+						break;
 					}
 		        }
 		    }
