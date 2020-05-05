@@ -130,7 +130,9 @@ void MinimaSwarm::update_fitnesses_gcpso (double& fitness_best_global, std::vect
   if (num_failure > failure_limit) {
     rho *= 0.8;
   } else if (num_success > success_limit) {
-    rho *= 1.25;
+    if (rho < RHO_LIM) {
+      rho *= 1.25;
+    }
   }
 
   /* printf("rho = %f \n", rho); */
@@ -227,7 +229,8 @@ MinimaNicheSwarm::MinimaNicheSwarm (PotentialEnergySurface* pot_energy_surf_in,
 
 #ifdef USE_MPI
   swarm_tally = 0;
-  buffsize = 2 * (num_agents_min_tot / num_procs) + 1;
+  buffsize = num_agents_min_tot / num_procs + 1;
+  // buffsize = num_agents_min_tot;
   swarm_register = new swarm_prop_t[num_procs * buffsize];
   for (int i = 0; i < num_procs * buffsize; i++) {
     swarm_register[i].id = i;
@@ -269,6 +272,10 @@ void MinimaNicheSwarm::evolve_subswarms () {
     subswarms[i].update_fitnesses_gcpso(fitness_best_globals[i], pos_best_globals[i]);
     subswarms[i].update_velocities_gcpso(pos_best_globals[i]);
     subswarms[i].move_swarm();
+
+    // subswarms[i].update_fitnesses(fitness_best_globals[i], pos_best_globals[i]);
+    // subswarms[i].update_velocities(pos_best_globals[i]);
+    // subswarms[i].move_swarm();
 
     /* printf("fitness_best (%i) = %f \n", i, fitness_best_globals[i]); */
     /* printf("pos_best (%i) = ", i); */
@@ -352,7 +359,9 @@ void MinimaNicheSwarm::evolve_niche_agents () {
     if (subswarms[i].num_failure > subswarms[i].failure_limit) {
       subswarms[i].rho *= 0.8;
     } else if (subswarms[i].num_success > subswarms[i].success_limit) {
-      subswarms[i].rho *= 1.25;
+      if (subswarms[i].rho < RHO_LIM) {
+	subswarms[i].rho *= 1.25;
+      }
     }
   }
 
@@ -413,7 +422,7 @@ void MinimaNicheSwarm::compute_radii_subswarms () {
 void MinimaNicheSwarm::merge_subswarms () {
 
 #ifdef USE_MPI
-  // merge_subswarms_mpi();
+  merge_subswarms_mpi();
 #endif
 
   std::vector<bool> merged;
@@ -501,7 +510,7 @@ void MinimaNicheSwarm::merge_subswarms () {
     for (int j = 0; j < swarm_map.size(); j++) {
       if (swarm_map[j] > q) { swarm_map[j]--; }
     }
-    subswarms[q].free_mem();
+    // subswarms[q].free_mem();
     subswarms.erase (                       subswarms.begin() + q );
     swarm_rsq.erase (                       swarm_rsq.begin() + q );
     fitness_best_globals.erase ( fitness_best_globals.begin() + q );
@@ -564,9 +573,11 @@ void MinimaNicheSwarm::add_agents_subswarms () {
     }
     // for (int i = agents[q].base.id + 1; i < num_min_agent; i++) {
     for (int i = 0; i < num_min_agent; i++) {
-      if (agent_map[agents[i].base.id] > q) { agent_map[agents[i].base.id]--; }
+      if (agent_map[agents[i].base.id] > q && swarm_map[agents[i].base.id] == -1) {
+	agent_map[agents[i].base.id]--;
+      }
     }
-    agents[q].free_mem();
+    // agents[q].free_mem();
     agents.erase (agents.begin() + q );
   }
 
@@ -640,14 +651,14 @@ void MinimaNicheSwarm::form_subswarms () {
   for (int p = 0; p < num_procs; p++) {
     if (p != mpi_rank) {
       for (int i = 0; i < map_to_form[p].size(); i++) {
-	if (map_to_form[p][i].rank == mpi_rank) {
-	  // Case: Partner belonging on ANOTHER process
-	  int part_idx = map_to_form[p][i].part_id;
-	  idx_to_form.push_back( part_idx );
-	  idx_to_join.push_back( -1 );
-	  id_to_link.push_back( map_to_form[p][i].swarm_id );
-	  dists.push_back( distances[p][i].d );
-	}
+  	if (map_to_form[p][i].rank == mpi_rank) {
+  	  // Case: Partner belonging on ANOTHER process
+  	  int part_idx = map_to_form[p][i].part_id;
+  	  idx_to_form.push_back( part_idx );
+  	  idx_to_join.push_back( -1 );
+  	  id_to_link.push_back( map_to_form[p][i].swarm_id );
+  	  dists.push_back( distances[p][i].d );
+  	}
       }
     }
   }
@@ -725,25 +736,22 @@ void MinimaNicheSwarm::form_subswarms () {
 
 	}
 #ifdef USE_MPI
-      } else {
+      } else if (id_to_link[i] != -1) {
+	if (!joined[idx_to_form[i]]) {
 
-	if (id_to_link[i] != -1) {
-	  if (!joined[idx_to_form[i]]) {
+	  addswarm = true;
 
-	    addswarm = true;
-
-	    int p = idx_to_form[i];
-	    min_dist_sq = dists[i];
+	  int p = idx_to_form[i];
+	  min_dist_sq = dists[i];
 	
-	    // Form subswarm from agent pair
-	    num_subswarm_agent = 1;
-	    agent_subswarm_bases = new agent_base_t[num_subswarm_agent];
-	    agent_subswarm_bases[0] = agents[p].base;
+	  // Form subswarm from agent pair
+	  num_subswarm_agent = 1;
+	  agent_subswarm_bases = new agent_base_t[num_subswarm_agent];
+	  agent_subswarm_bases[0] = agents[p].base;
 
-	    to_remove.push_back( idx_to_form[i] );
-	    joined[ idx_to_form[i] ] = true;
+	  to_remove.push_back( idx_to_form[i] );
+	  joined[ idx_to_form[i] ] = true;
 
-	  }
 	}
 #endif
       }
@@ -760,7 +768,7 @@ void MinimaNicheSwarm::form_subswarms () {
 #ifdef USE_MPI
 	// printf("id to link = %i (rank = %i) \n", id_to_link[i], mpi_rank);
 	subswarms[num_subswarm - 1].add_swarm_id( id_to_link[i] );
-	swarm_tally++;
+	// swarm_tally++;
 #endif
 	
 	std::vector< double > pos_temp(num_dim);
@@ -773,14 +781,13 @@ void MinimaNicheSwarm::form_subswarms () {
 	  agent_map[agent_subswarm_bases[k].id] = k;
 	}
 	
-	delete[] agent_subswarm_bases;
+	// delete[] agent_subswarm_bases;
 	
 	// printf("formed new subswarm \n");
 
 // #ifdef USE_MPI
 //       } else {
-// 	// Still update swarm tally
-// 	swarm_tally++;
+// 	printf("NOT ADDED \n");
 // #endif
       }
 
@@ -797,9 +804,11 @@ void MinimaNicheSwarm::form_subswarms () {
     if (q >= 0) {
       // for (int i = agents[q].base.id + 1; i < num_min_agent; i++) {
       for (int i = 0; i < num_min_agent; i++) {
-	if (agent_map[agents[i].base.id] > q) { agent_map[agents[i].base.id]--; }
+	if (agent_map[agents[i].base.id] > q && swarm_map[agents[i].base.id] == -1) {
+	  agent_map[agents[i].base.id]--;
+	}
       }
-      agents[q].free_mem();
+      // agents[q].free_mem();
       agents.erase (agents.begin() + q );
     }
 
@@ -807,11 +816,17 @@ void MinimaNicheSwarm::form_subswarms () {
     
   }
 
-// #ifdef USE_MPI
-//   // swarm_tally += size_to_form;
-//   swarm_tally += idx_to_form.size();
-// #endif
+#ifdef USE_MPI
+  swarm_tally += idx_to_form.size();
+  // swarm_tally += size_to_form;
+#endif
 
+  // MPI_Barrier(MPI_COMM_WORLD);
+  // for (int i = 0; i < idx_to_form.size(); i++) {
+  //   printf("idx_to_form, idx_to_join, id_to_link = %i, %i, %i (rank = %i) \n",
+  // 	   idx_to_form[i], idx_to_join[i], id_to_link[i], mpi_rank);
+  // }
+  // printf("size to form = %i \n", idx_to_form.size());
   // if(num_subswarm > 0) {
   //   exit(0);
   // }

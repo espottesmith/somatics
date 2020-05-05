@@ -15,6 +15,7 @@
 #include "pes/pes.h"
 
 #define UNIQUE_MIN_SIZE_LOWBOUND   3
+#define RHO_LIM                    2.0
 #define DIST_LIM                   1000000.00
 #define FITNESS_LIM                1000000.00
 #define verbosity                  0

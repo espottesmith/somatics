@@ -82,8 +82,10 @@ void MinimaNicheSwarm::update_swarm_register_mpi () {
     // MPI_Allreduce(&(swarm_register[q].radius_sq), &rsq_min, 1,
     // 		  MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
     // if (rsq_min == -1.0) { rsq_max = -1.0; }
+
+    /* HACK */ rsq_max = 0.0;
     MPI_Allreduce(&rsq_max, &(swarm_register[q].radius_sq), 1,
-		  MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    		  MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 
     MPI_Allreduce(&num_agent_sum, &(swarm_register[q].num_agent), 1,
 		  MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -132,27 +134,33 @@ void MinimaNicheSwarm::merge_subswarms_mpi () {
       double Rsum_sq = swarm_rsq[p] + swarm_register[q].radius_sq;
       Rsum_sq *= Rsum_sq;
 
-      int num_min_agent_combine = subswarms[p].num_min_agent + swarm_register[q].num_agent;
+      int num_min_agent_combine = subswarms[p].num_min_agent /*+ swarm_register[q].num_agent*/;
+
+      for (int i=0; i<subswarms[p].num_ids; i++) {
+	int swarm_id = subswarms[p].swarm_ids[i];
+	num_min_agent_combine += swarm_register[swarm_id].num_agent;
+      }
 
       if (dist_sq < Rsum_sq &&
 	  swarm_rsq[p] != -1.0 && swarm_register[q].radius_sq != -1.0 &&
 	  num_min_agent_combine <= max_subswarm_size) {
 
 	if (verbosity > 1)
-	  printf("merging subswarms %i & with id: %i \n", p, q);
+	  printf("merging subswarms %i & with id: %i (rank = %i)\n", p, q, mpi_rank);
 
 	subswarms[p].add_swarm_id( q );
 
-	swarm_rsq[p] = -1.0;
+	// swarm_rsq[p] = -1.0;
 	fitness_best_globals[p] = -1.0;
 
-	// for (int i=0; i<subswarms[p].num_ids; i++) {
-	//   int swarm_id = subswarms[p].swarm_ids[i];
-	int swarm_id = q;
-	swarm_register[swarm_id].radius_sq = -1.0;
-	swarm_register[swarm_id].fitness_best = -1.0;
-	swarm_register[swarm_id].num_agent = num_min_agent_combine;
-	// }
+	for (int i=0; i<subswarms[p].num_ids; i++) {
+	  int swarm_id = subswarms[p].swarm_ids[i];
+	  // swarm_register[swarm_id].radius_sq = -1.0;
+	  swarm_register[swarm_id].fitness_best = -1.0;
+	  swarm_register[swarm_id].num_agent = num_min_agent_combine;
+	}
+
+	// break;
 
       }
     }
@@ -191,7 +199,7 @@ void MinimaNicheSwarm::add_agents_subswarms_mpi () {
 
 	num_subswarm++;
 	
-	delete[] agent_subswarm_bases;
+	// delete[] agent_subswarm_bases;
 	  
 #ifdef USE_MPI
 	subswarms[num_subswarm - 1].add_swarm_id( q );
@@ -223,7 +231,9 @@ void MinimaNicheSwarm::add_agents_subswarms_mpi () {
       if (to_remove[j] > q) { to_remove[j]--; }
     }
     for (int i = 0; i < num_min_agent; i++) {
-      if (agent_map[agents[i].base.id] > q) { agent_map[agents[i].base.id]--; }
+      if (agent_map[agents[i].base.id] > q && swarm_map[agents[i].base.id] == -1) {
+	agent_map[agents[i].base.id]--;
+      }
     }
     agents.erase (agents.begin() + q );
   }
