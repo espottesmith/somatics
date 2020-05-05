@@ -1,6 +1,4 @@
-#ifdef USE_MPI
 #include <mpi.h>
-#endif
 
 #include "../common.h"
 #include "ts_controller.h"
@@ -13,7 +11,6 @@
  * 3 - sending (double* w/ dimension num_dim) TS (always optimizer -> controller)
  */
 
-#ifdef USE_MPI
 void TransitionStateController::distribute() {
 	for (int p = 1; p < processes; p++) {
 		int have_work = 0;
@@ -123,7 +120,6 @@ void TransitionStateController::listen() {
 
 	}
 }
-#endif
 
 TransitionStateController::TransitionStateController(int processes_in, std::vector<double*> minima_in,
 			bool* active_processes_in, std::vector<minima_link_t> to_allocate_in,

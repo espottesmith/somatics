@@ -1,9 +1,7 @@
 #ifndef TS_CONTROLLER_H
 #define TS_CONTROLLER_H
 
-#ifdef USE_MPI
-	#include <mpi.h>
-#endif
+#include <mpi.h>
 
 #include "../common.h"
 
@@ -21,10 +19,8 @@ public:
     std::vector<ts_link_t> transition_states;
     std::vector<ts_link_t> failures;
 
-#ifdef USE_MPI
 	void distribute();
 	void listen();
-#endif // USE_MPI
 
 	TransitionStateController(int processes_in, std::vector<double*> minima_in,
 			bool* active_processes_in, std::vector<minima_link_t> to_allocate_in,
