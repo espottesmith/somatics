@@ -9,10 +9,7 @@
 #include <algorithm>
 
 #include <omp.h>
-
-#ifdef USE_MPI
 #include <mpi.h>
-#endif
 
 #include "../agents/ts_agent.h"
 #include "ts_optimizer.h"
@@ -608,8 +605,6 @@ void TransitionStateOptimizer::find_ts() {
 	}
 }
 
-#ifdef USE_MPI
-
 void TransitionStateOptimizer::receive() {
 	// First, learn if there's work to do
 	int work_to_do;
@@ -645,8 +640,6 @@ void TransitionStateOptimizer::send() {
 		MPI_Send((void*) transition_state, num_dim, MPI_DOUBLE, 0, 3, MPI_COMM_WORLD);
 	}
 }
-
-#endif // USE_MPI
 
 TransitionStateOptimizer::TransitionStateOptimizer(double step_size_in, double distance_goal_in,
 		int num_steps_in, PotentialEnergySurface* pes_in, std::vector<double*> minima_in,

@@ -98,10 +98,8 @@ public:
     void run();
     void find_ts();
 
-#ifdef USE_MPI
     void receive();
     void send();
-#endif
 
     TransitionStateOptimizer(double step_size_in, double distance_goal_in, int num_steps_in,
     		PotentialEnergySurface* pes_in, std::vector<double*> minima_in, int save_freq_in, int rank_in);
