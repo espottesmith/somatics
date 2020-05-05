@@ -1,14 +1,14 @@
 .PHONY: execute clean
 
-ON_CORI           = FALSE
-USE_KNL           = FALSE
+ON_CORI           = TRUE
+USE_KNL           = TRUE
 
-USE_MPI           = FALSE
+USE_MPI           = TRUE
 USE_MOLECULE      = FALSE
 
 USE_MIN_FINDER    = TRUE
-USE_TS_FINDER     = FALSE
-USE_QHULL         = FALSE
+USE_TS_FINDER     = TRUE
+USE_QHULL         = TRUE
 
 ifeq ($(USE_MPI), TRUE)
 CXX = mpic++
@@ -19,10 +19,19 @@ CXX = g++
 C = gcc
 endif
 
+DEPS = main.cpp common.h utils/math.h pes/pes.h pes/test_surfaces.h
+OBJS = main.o math.o test_surfaces.o common.o
+
 ifeq ($(USE_MPI), TRUE)
 ifeq ($(ON_CORI), TRUE)
 MPIDIR=/global/common/software/m3169/cori/openmpi/4.0.2/gnu/include
 CFLAGS += -I$(MPIDIR)
+endif
+
+ifeq ($(USE_TS_FINDER), TRUE)
+DEPS += optimizers/ts_controller.h
+OBJS += ts_controller.o
+DEFINES += -DUSE_MPI=$(USE_MPI)
 endif
 endif
 
@@ -31,9 +40,6 @@ QHULLDIR=/global/homes/c/cmcc/.local
 CFLAGS += -I$(QHULLDIR)/include
 endif
 
-DEPS = main.cpp common.h utils/math.h pes/pes.h pes/test_surfaces.h
-OBJS = main.o math.o test_surfaces.o common.o
-
 ifeq ($(USE_MIN_FINDER), TRUE)
 DEPS += agents/minima_agent.h swarms/swarm.h optimizers/min_optimizer.h
 OBJS += minima_agent.o swarm.o min_optimizer.o
@@ -41,7 +47,7 @@ DEFINES	+= -DUSE_MIN_FINDER=$(USE_MIN_FINDER)
 endif
 
 ifeq ($(USE_TS_FINDER), TRUE)
-DEPS += optimizers/ts_optimizer.h
+DEPS += optimizers/ts_optimizer.h agents/ts_agent.h
 OBJS += ts_agent.o ts_optimizer.o
 DEFINES	+= -DUSE_TS_FINDER=$(USE_TS_FINDER)
 endif
@@ -69,8 +75,8 @@ OBJS += molecule.o xyz.o xtb_adapter.o xtb_surface.o
 DEFINES	+= -DUSE_MOLECULE=$(USE_MOLECULE)
 endif
 
-execute: $(OBJS)
-	${CXX} -o execute $(OBJS) $(EXTERN) $(DEFINES)
+somatics: $(OBJS)
+	${CXX} -o somatics $(OBJS) $(EXTERN) $(DEFINES)
 
 main.o: $(DEPS)
 	@echo "Creating main object..."
@@ -107,7 +113,7 @@ ts_agent.o: pes/pes.h utils/math.h agents/ts_agent.h agents/ts_agent.cpp
 	@echo "Creating TS agent object..."
 	${CXX} ${CFLAGS} -c agents/ts_agent.cpp
 
-ts_optimizer.o: pes/pes.h utils/math.h agents/ts_agent.h optimizers/ts_optimizer.h optimizers/ts_optimizer.cpp
+ts_optimizer.o: pes/pes.h utils/math.h agents/ts_agent.h optimizers/ts_optimizer.h optimizers/ts_optimizer.cpp common.h
 	@echo "Creating TS optimizer object..."
 	${CXX} ${CFLAGS} -c optimizers/ts_optimizer.cpp
 endif
@@ -136,6 +142,14 @@ voronoi.o: voronoi/voronoi.cpp common.h
 	${CXX} ${CFLAGS} -c voronoi/voronoi.cpp
 endif
 
+ifeq ($(USE_MPI), TRUE)
+ifeq ($(USE_TS_FINDER), TRUE)
+ts_controller.o: optimizers/ts_controller.h optimizers/ts_controller.cpp common.h
+	@echo "Creating TS Controller object..."
+	${CXX} ${CFLAGS} -c optimizers/ts_controller.cpp
+endif
+endif
+
 clean:
 	@echo "Cleaning up"
-	rm execute *.o
+	rm somatics *.o

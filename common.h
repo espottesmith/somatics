@@ -32,25 +32,35 @@ extern int num_procs;
 
 // Particle Data Structure
 typedef struct agent_base_t {
-  int id;                    // Agent ID
-  double* pos;               // Position
-  double* vel;               // Velocity
-  double fitness;            // Fitness
-  double* pos_best;          // Best position
-  double fitness_best;       // Best fitness value
+	int id;                    // Agent ID
+	double* pos;               // Position
+	double* vel;               // Velocity
+	double fitness;            // Fitness
+	double* pos_best;          // Best position
+	double fitness_best;       // Best fitness value
 } agent_base_t;
 
 typedef struct agent_prop_t {
-  double* pos;               // Position
+	double* pos;               // Position
 } agent_prop_t;
 
 typedef struct swarm_prop_t {
-  int id;                    // Swarm ID
-  double* pos_best;          // Best position
-  double fitness_best;       // Best fitness value
-  double radius_sq;          // Radius - squared
-  int num_agent;
+	int id;                    // Swarm ID
+	double* pos_best;          // Best position
+	double fitness_best;       // Best fitness value
+	double radius_sq;          // Radius - squared
+	int num_agent;
 } swarm_prop_t;
+
+typedef struct ts_link_t {
+	int minima_one;
+	int minima_two;
+	int owner;
+	int iterations;
+	int steps;
+	bool converged;
+	double* ts_position;
+} ts_link_t;
 
 #ifdef USE_MPI
 typedef struct mapping_t {
@@ -58,14 +68,14 @@ typedef struct mapping_t {
   int part_id;
   int swarm_id;
 } mapping_t;
-#endif
+#endif // USE_MPI
 
 struct double_int{ double d; int i; };
 
 // Region Data Structure
 typedef struct region_t {
-  double* lo;
-  double* hi;
+	double* lo;
+	double* hi;
 } region_t;
 
 // Functions

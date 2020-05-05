@@ -1,0 +1,13 @@
+#!/bin/bash
+#SBATCH -N 1
+#SBATCH -C knl
+#SBATCH -q debug
+#SBATCH -J somatics
+#SBATCH --ntasks-per-node=2
+#SBATCH -t 00:30:00
+
+#modules
+module load openmpi
+
+#run the application:
+srun ../somatics -surf Muller_Brown -nmin 500 -nts 8 -nthreads 16 -freq 500 -iter 500

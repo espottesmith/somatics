@@ -17,7 +17,11 @@
 #endif
 #ifdef USE_TS_FINDER
 #include "optimizers/ts_optimizer.h"
-#endif
+#ifdef USE_MPI
+#include "optimizers/ts_controller.h"
+#endif // USE_MPI
+#endif // USE_TS_FINDER
+
 #ifdef USE_QHULL
 #include "voronoi/voronoi.h"
 #endif
@@ -57,7 +61,7 @@ int main(int argc, char** argv) {
 		std::cout << "-nts <int>: set number of agents for identifying TS; default 1" << std::endl;
 		std::cout << "-nthreads <int>: set number of threads for a given process (using OpenMP); default 1" << std::endl;
 		std::cout << "-mol <filename>: *.xyz file representing an input molecular structure" << std::endl;
-		std::cout << "-surf <str>: name of a test surface (one of Muller_Brown, Halgren_Lipscomb, Cerjan_Miller, Quapp_Wolfe_Schlegel, Culot_Dive_Nguyen_Ghuysen" << std::endl;
+		std::cout << "-surf <str>: name of a test surface (one of Muller_Brown, Halgren_Lipscomb, Quapp_Wolfe_Schlegel, Culot_Dive_Nguyen_Ghuysen" << std::endl;
 		std::cout << "-mtol <int>: energy tolerance for identification of a minimum. Ex: -mtol 8 (default) means that the tolerance will be 1.0 * 10^-8" << std::endl;
 		std::cout << "-utol <int>: distance tolerance for determination of unique minima. Ex: -utol 6 (default) means that the tolerance will be 1.0 * 10^-6" << std::endl;
 		std::cout << "-iter <int>: maximum number of iterations for PSO algorithms (same for minima and TS); default is 250" << std::endl;
@@ -286,43 +290,159 @@ int main(int argc, char** argv) {
 	delete[] region.lo;
 	delete[] region.hi;
 	
+	std::cout << "# minima: " << minima.size() << std::endl;
 #endif
 
-#ifdef USE_QHULL
-	int* outpairs = delaunay(minima);
-	int num_min = minima.size();
-#endif
+	// At this point, everything has the minima vector
 
 #ifdef USE_TS_FINDER
-	for (int i = 0; i < num_min; i++) {
-  	    for (int j = 0; j < i; j++) {
-  	    	if (outpairs[i * num_min + j] == 1) {
-  	    		for (int k = 0; k < 5; k++) {
-  	    			std::string filestring = "ts" + std::to_string(i) + "_" + std::to_string(j) + "_" + std::to_string(k) + ".txt";
-	                char* filename = strdup(filestring.c_str());
-                    TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes,
-                    		minima[i], minima[j], savefreq, filename);
+
+bool single_process = true;
+
+#ifdef USE_MPI
+
+	if (num_procs != 1) {
+		single_process = false;
+
+		if (mpi_rank == 0) {
+#ifdef USE_QHULL
+			int* outpairs = delaunay(minima);
+			int num_min = minima.size();
+#endif
+
+			bool* active = new bool[num_procs];
+
+			for (int proc = 0; proc < num_procs; proc++) {
+				active[proc] = false;
+			}
+
+		    std::vector<int*> to_allocate;
+		    to_allocate.resize(0);
+
+		    ts_link_t* rank_ts_map = new ts_link_t[num_procs];
+
+		    for (int i = 0; i < num_min; i++) {
+		        for (int j = 0; j < i; j++) {
+					if (outpairs[i * num_min + j] == 1) {
+						int* link = new int[2];
+						link[0] = i;
+						link[1] = j;
+						to_allocate.push_back(link);
+					}
+		        }
+		    }
+
+		    std::cout << "# TS to search for: " << to_allocate.size() << std::endl;
+
+		    int allocated = 0;
+		    for (int pair = 0; pair < to_allocate.size(); pair++) {
+		        for (int proc = 1; proc < num_procs; proc++) {
+					if (!active[proc]) {
+						active[proc] = true;
+
+						ts_link_t link;
+						link.minima_one = to_allocate[pair][0];
+						link.minima_two = to_allocate[pair][1];
+						link.owner = proc;
+						link.iterations = 0;
+						link.steps = 0;
+						link.converged = false;
+						rank_ts_map[proc] = link;
+
+						allocated++;
+						break;
+					}
+		        }
+		    }
+
+		    to_allocate.erase(to_allocate.begin(), to_allocate.begin() + allocated);
+
+			TransitionStateController controller = TransitionStateController(num_procs,
+					minima, active, to_allocate, rank_ts_map);
+			auto t_start_ts_find = std::chrono::steady_clock::now();
+			controller.distribute();
+			controller.listen();
+            auto t_end_ts_find = std::chrono::steady_clock::now();
+            std::chrono::duration<double> diff_ts = t_end_ts_find - t_start_ts_find;
+			double time_ts_find = diff_ts.count();
+            std::cout << "CONTROLLER TOTAL TIME: " << time_ts_find << std::endl;
+
+			int numts = controller.transition_states.size();
+			int numfails = controller.failures.size();
+			for (int ts = 0; ts < numts; ts++) {
+				if (controller.transition_states[ts].converged) {
+					std::cout << controller.transition_states[ts].minima_one << " " << controller.transition_states[ts].minima_two << std::endl;
+					for (int d = 0; d < num_dim; d++) {
+						std::cout << controller.transition_states[ts].ts_position[d] << " ";
+					}
+					std::cout << std::endl;
+					std::cout << std::endl;
+				}
+			}
+
+			for (int fail = 0; fail < numfails; fail++) {
+				if (!controller.failures[fail].converged) {
+					std::cout << controller.failures[fail].minima_one << " " << controller.failures[fail].minima_two << ": NO TS FOUND" << std::endl;
+					std::cout << std::endl;
+				}
+			}
+
+		} else {
+			TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes,
+					minima, savefreq, mpi_rank);
+
+			ts_opt.receive();
+
+			while (ts_opt.active){
+				ts_opt.initialize();
+				auto t_start_ts_find = std::chrono::steady_clock::now();
+				ts_opt.run();
+	            auto t_end_ts_find = std::chrono::steady_clock::now();
+	            std::chrono::duration<double> diff_ts = t_end_ts_find - t_start_ts_find;
+				double time_ts_find = diff_ts.count();
+				std::cout << "RANK " << mpi_rank << "\t iterations: " << ts_opt.get_iteration() << "\t step #: " << ts_opt.get_step_num() << "\t time : " << time_ts_find << std::endl;
+				ts_opt.reset();
+			}
+		}
+	}
+#endif // USE_MPI
+
+	if (single_process) {
+		std::cout << "RUNNNING IN SINGLE PROCESS REGION" << std::endl;
+
+#ifdef USE_QHULL
+			int* outpairs = delaunay(minima);
+			int num_min = minima.size();
+#endif
+		TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes, minima, savefreq, 0);
+		for (int i = 0; i < num_min; i++) {
+	        for (int j = 0; j < i; j++) {
+	            if (outpairs[i * num_min + j] == 1) {
+	                ts_opt.min_one = minima[i];
+	                ts_opt.min_two = minima[j];
                     auto t_start_ts_find = std::chrono::steady_clock::now();
 	                ts_opt.run();
 	                auto t_end_ts_find = std::chrono::steady_clock::now();
 	                std::chrono::duration<double> diff_ts = t_end_ts_find - t_start_ts_find;
 					double time_ts_find = diff_ts.count();
-	                std::cout << i << " " << j << " " << k << ": " << time_ts_find << std::endl;
-	                std::cout << ts_opt.get_step_num() << std::endl;
+	                std::cout << i << " " << j << " " << ": " << time_ts_find << std::endl;
+	                std::cout << "Iterations: " << ts_opt.get_iteration() << std::endl;
+	                std::cout << "Steps on final iteration: " << ts_opt.get_step_num() << std::endl;
 	                if (ts_opt.all_converged) {
-	                    double* ts = ts_opt.find_ts();
+	                    double* ts = ts_opt.transition_state;
 		                for (int d = 0; d < num_dim; d++) {
 		                    std::cout << ts[d] << " ";
 		                }
 		                std::cout << std::endl;
-		                break;
 	                }
 	                std::cout << std::endl;
-  	    		}
-  	    	}
-  	    }
+	                ts_opt.reset();
+	            }
+	        }
+		}
 	}
-#endif
+
+#endif // USE_TS_FINDER
 
 #ifdef USE_MPI
 	MPI_Finalize();
