@@ -298,7 +298,7 @@ bool single_process = true;
 				active[proc] = false;
 			}
 
-		    std::vector<minima_link_t> to_allocate;
+		    std::vector<int*> to_allocate;
 		    to_allocate.resize(0);
 
 		    ts_link_t* rank_ts_map = new ts_link_t[num_procs];
@@ -321,8 +321,8 @@ bool single_process = true;
 						active[proc] = true;
 
 						ts_link_t link;
-						link.minima_one = to_allocate[pair].minima_one;
-						link.minima_two = to_allocate[pair].minima_two;
+						link.minima_one = to_allocate[pair][0];
+						link.minima_two = to_allocate[pair][1];
 						link.owner = proc;
 						link.iterations = 0;
 						link.steps = 0;

@@ -6,7 +6,7 @@
 /*
  * TAGS:
  * 0 - sending (int) have_work (always controller -> optimizer)
- * 1 - sending (minima_link_t) link (always controller -> optimizer)
+ * 1 - sending (int) link (always controller -> optimizer)
  * 2 - sending (int) convergence (always optimizer -> controller)
  * 3 - sending (double* w/ dimension num_dim) TS (always optimizer -> controller)
  */
@@ -41,7 +41,7 @@ void TransitionStateController::listen() {
 	int converged[processes];
 
 	for (int p = 1; p < processes; p++) {
-		listening_flags[p] = 0;
+		flags[p] = 0;
 		if (active_processes[p]) {
 			if (!any_active) {
 				any_active = true;
@@ -72,7 +72,7 @@ void TransitionStateController::listen() {
 						MPI_Recv((void*) ts, num_dim, MPI_DOUBLE, p, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 						link.ts_position = ts;
-						transition_states.push_back(ts);
+						transition_states.push_back(link);
 
 					} else {
 						failures.push_back(link);
@@ -93,8 +93,8 @@ void TransitionStateController::listen() {
 
 						// Bookkeeping - this process now has a different TS to search for
 						ts_link_t link;
-						link.minima_one = min_link.minima_one;
-						link.minima_two = min_link.minima_two;
+						link.minima_one = min_link[0];
+						link.minima_two = min_link[1];
 						link.owner = p;
 						link.iterations = 0;
 						link.steps = 0;
@@ -102,7 +102,7 @@ void TransitionStateController::listen() {
 						rank_ts_map[p] = link;
 
 						// Send the link
-						MPI_Isend(&min_link, 1, MinimaLinkMPI, p, 1, MPI_COMM_WORLD, &request_link);
+						MPI_Isend(&min_link, 2, MPI_INT, p, 1, MPI_COMM_WORLD, &request_link);
 
 						to_allocate.erase(to_allocate.begin());
 
@@ -124,7 +124,7 @@ void TransitionStateController::listen() {
 }
 
 TransitionStateController::TransitionStateController(int processes_in, std::vector<double*> minima_in,
-			bool* active_processes_in, std::vector<minima_link_t> to_allocate_in,
+			bool* active_processes_in, std::vector<int*> to_allocate_in,
 			ts_link_t* rank_ts_map_in) {
 	processes = processes_in;
 	active_processes = active_processes_in;

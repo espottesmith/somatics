@@ -51,11 +51,6 @@ typedef struct swarm_prop_t {
 	int num_agent;
 } swarm_prop_t;
 
-typedef struct minima_link_t {
-	int minima_one;
-	int minima_two;
-} minima_link_t;
-
 typedef struct ts_link_t {
 	int minima_one;
 	int minima_two;

@@ -19,7 +19,7 @@
 /*
  * TAGS:
  * 0 - sending (int) have_work (always controller -> optimizer)
- * 1 - sending (minima_link_t) link (always controller -> optimizer)
+ * 1 - sending (int) link (always controller -> optimizer)
  * 2 - sending (int) convergence (always optimizer -> controller)
  * 3 - sending (double* w/ dimension num_dim) TS (always optimizer -> controller)
  */
