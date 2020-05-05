@@ -332,6 +332,8 @@ bool single_process = true;
 		        }
 		    }
 
+		    std::cout << "# TS to search for: " << to_allocate.size() << std::endl;
+
 		    int allocated = 0;
 		    for (int pair = 0; pair < to_allocate.size(); pair++) {
 		        for (int proc = 1; proc < num_procs; proc++) {
