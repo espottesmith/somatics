@@ -12,7 +12,7 @@ private:
 	std::vector<double*> minima;
 
     bool* active_processes;
-    std::vector<minima_link_t> to_allocate;
+    std::vector<int*> to_allocate;
     ts_link_t* rank_ts_map;
 
 public:
@@ -23,7 +23,7 @@ public:
 	void listen();
 
 	TransitionStateController(int processes_in, std::vector<double*> minima_in,
-			bool* active_processes_in, std::vector<minima_link_t> to_allocate_in,
+			bool* active_processes_in, std::vector<int*> to_allocate_in,
 			ts_link_t* rank_ts_map_in);
 
 };

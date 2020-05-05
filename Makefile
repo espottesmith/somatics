@@ -28,9 +28,11 @@ MPIDIR=/global/common/software/m3169/cori/openmpi/4.0.2/gnu/include
 CFLAGS += -I$(MPIDIR)
 endif
 
+ifeq ($(USE_TS_FINDER), TRUE)
 DEPS += optimizers/ts_controller.h
 OBJS += ts_controller.o
 DEFINES += -DUSE_MPI=$(USE_MPI)
+endif
 endif
 
 ifeq ($(ON_CORI), TRUE)
@@ -45,7 +47,7 @@ DEFINES	+= -DUSE_MIN_FINDER=$(USE_MIN_FINDER)
 endif
 
 ifeq ($(USE_TS_FINDER), TRUE)
-DEPS += optimizers/ts_optimizer.h
+DEPS += optimizers/ts_optimizer.h agents/ts_agent.h
 OBJS += ts_agent.o ts_optimizer.o
 DEFINES	+= -DUSE_TS_FINDER=$(USE_TS_FINDER)
 endif
@@ -141,9 +143,11 @@ voronoi.o: voronoi/voronoi.cpp common.h
 endif
 
 ifeq ($(USE_MPI), TRUE)
+ifeq ($(USE_TS_FINDER), TRUE)
 ts_controller.o: optimizers/ts_controller.h optimizers/ts_controller.cpp common.h
 	@echo "Creating TS Controller object..."
 	${CXX} ${CFLAGS} -c optimizers/ts_controller.cpp
+endif
 endif
 
 clean:

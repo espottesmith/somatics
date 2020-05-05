@@ -20,10 +20,10 @@ void TransitionStateController::distribute() {
 			MPI_Request request_work, request_link;
 			MPI_Isend(&have_work, 1, MPI_INT, p, 0, MPI_COMM_WORLD, &request_work);
 
-			minima_link_t link;
-			link.minima_one = rank_ts_map[p].minima_one;
-			link.minima_two = rank_ts_map[p].minima_two;
-			MPI_Isend(&link, 1, MinimaLinkMPI, p, 1, MPI_COMM_WORLD, &request_link);
+			int link[2];
+			link[0] = rank_ts_map[p].minima_one;
+			link[1] = rank_ts_map[p].minima_two;
+			MPI_Isend(&link, 2, MPI_INT, p, 1, MPI_COMM_WORLD, &request_link);
 		} else {
 			MPI_Request request_work;
 			MPI_Isend(&have_work, 1, MPI_INT, p, 0, MPI_COMM_WORLD, &request_work);
@@ -87,7 +87,9 @@ void TransitionStateController::listen() {
 						// Tell process that we have more work for it to do
 						MPI_Isend(&have_work, 1, MPI_INT, p, 0, MPI_COMM_WORLD, &request_work);
 
-						minima_link_t min_link = to_allocate[0];
+						int min_link[2];
+						min_link[0] = to_allocate[0][0];
+						min_link[1] = to_allocate[0][1];
 
 						// Bookkeeping - this process now has a different TS to search for
 						ts_link_t link;

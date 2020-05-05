@@ -615,12 +615,12 @@ void TransitionStateOptimizer::receive() {
 	if (work_to_do) {
 		active = true;
 
-		minima_link_t link;
+		int* link;
 
-		MPI_Recv(&link, 1, MinimaLinkMPI, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv((void*) link, 2, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-		min_one_id = link.minima_one;
-		min_two_id = link.minimum_two;
+		min_one_id = link[0];
+		min_two_id = link[1];
 
 		min_one = minima[min_one_id];
 		min_two = minima[min_two_id];

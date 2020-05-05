@@ -299,28 +299,5 @@ void init_mpi_structs() {
     MPI_Type_commit(&SwarmPropMPI);
   }
 
-#ifdef USE_TS_FINDER
-  {
-  	minima_link_t link;
-
-  	const int nitems = 2;
-  	int blocklengths[nitems] = {1, 1};
-  	MPI_Datatype types[nitems] = {MPI_INT, MPI_INT};
-  	MPI_Aint offsets[nitems], base;
-
-  	int count = 0;
-  	MPI_Get_address(&link,                           offsets+count++);
-  	MPI_Get_address(&(link.minima_one),              offsets+count++);
-  	MPI_Get_address(&(link.minima_two),              offsets+count++);
-  	base = offsets[0];
-
-  	for (int i = 0; i < nitems; i++) { offsets[i] = MPI_Aint_diff(offsets[i], base); }
-
-  	MPI_Type_create_struct(nitems, blocklengths, offsets, types, &MinimaLinkMPI);
-  	MPI_Type_commit(&MinimaLinkMPI);
-
-  }
-#endif // USE_TS_FINDER
-
 }
 #endif // USE_MPI

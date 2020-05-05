@@ -306,9 +306,9 @@ bool single_process = true;
 		    for (int i = 0; i < num_min; i++) {
 		        for (int j = 0; j < i; j++) {
 					if (outpairs[i * num_min + j] == 1) {
-						minima_link_t link;
-						link.minima_one = i;
-						link.minima_two = j;
+						int* link = new int[2];
+						link[0] = i;
+						link[1] = j;
 						to_allocate.push_back(link);
 					}
 		        }

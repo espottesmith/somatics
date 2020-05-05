@@ -71,10 +71,6 @@ extern MPI_Datatype AgentBaseMPI;
 extern MPI_Datatype AgentPropMPI;
 extern MPI_Datatype SwarmPropMPI;
 
-#ifdef USE_TS_FINDER
-extern MPI_Datatype MinimaLinkMPI;
-#endif // USE_TS_FINDER
-
 typedef struct mapping_t {
   int rank;
   int part_id;
