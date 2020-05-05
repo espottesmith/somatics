@@ -56,6 +56,7 @@ class MinimaSwarm {
 #ifdef USE_MPI
   void add_swarm_id (int id);
 #endif
+  void free_mem ();
 
 };
 
@@ -81,6 +82,9 @@ class MinimaNicheSwarm : public MinimaSwarm {
   int buffsize, swarm_tally;
   swarm_prop_t* swarm_register;
 #endif
+
+  std::vector< int > swarm_map;
+  std::vector< int > agent_map;
   
   MinimaNicheSwarm (PotentialEnergySurface* pot_energy_surf_in,
 		    agent_base_t* agent_bases, int num_min_agent_in,
@@ -91,10 +95,11 @@ class MinimaNicheSwarm : public MinimaSwarm {
 
   void cognition_only ();
   void evolve_subswarms ();
+  void evolve_niche_agents ();
+  void compute_radii_subswarms ();
   void merge_subswarms ();
   void add_agents_subswarms ();
   void form_subswarms ();
-
 #ifdef USE_MPI
   void update_swarm_register_mpi ();
   void merge_subswarms_mpi ();
@@ -106,6 +111,7 @@ class MinimaNicheSwarm : public MinimaSwarm {
 				  std::vector< int > swarm_ids,
 				  int size_to_form );
 #endif
+  void free_mem ();
 
 };
 

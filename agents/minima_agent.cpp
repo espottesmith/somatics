@@ -79,6 +79,18 @@ void MinimaAgent::update_velocity (std::vector<double> pos_best_global) {
 
 }
 
+void MinimaAgent::update_velocity_cognit_only () {
+
+  double r_cog, v_cog;
+
+  for (int d = 0; d < num_dim; d++) {
+    r_cog = rand_vel_weighting(gen);
+    v_cog = cognit*r_cog*(base.pos_best[d] - base.pos[d]);
+    base.vel[d] = inertia*base.vel[d] + v_cog;
+  }
+
+}
+
 void MinimaAgent::update_velocity_best (std::vector<double> pos_best_global, double rho) {
 
   double r, v_correction, v_random;
@@ -132,5 +144,13 @@ void MinimaAgent::update_variance () {
     /* printf("variance = %f \n", variance); */
 
   }
+
+}
+
+void MinimaAgent::free_mem () {
+
+  delete[] base.pos;
+  delete[] base.vel;
+  delete[] base.pos_best;
 
 }

@@ -17,7 +17,7 @@
 #define UNIQUE_MIN_SIZE_LOWBOUND   3
 #define DIST_LIM                   1000000.00
 #define FITNESS_LIM                1000000.00
-#define verbosity                  1
+#define verbosity                  0
 
 extern int num_dim;
 extern int num_agents_min_tot;
@@ -62,10 +62,6 @@ typedef struct ts_link_t {
 } ts_link_t;
 
 #ifdef USE_MPI
-extern MPI_Datatype AgentBaseMPI;
-extern MPI_Datatype AgentPropMPI;
-extern MPI_Datatype SwarmPropMPI;
-
 typedef struct mapping_t {
   int rank;
   int part_id;
@@ -88,10 +84,7 @@ void init_agents(agent_base_t* agents, int num_agents, region_t region);
 void save(std::ofstream& fsave, agent_base_t* agents, int num_agents, region_t region);
 void save_molecular(std::ofstream& fsave, std::string* species, agent_base_t* agents, int num_agents, region_t region);
 void save_polychrome(std::ofstream& fsave, agent_base_t** agent_bases, int* num_agent_bases,
-                     int num_swarms, region_t region);
-#ifdef USE_MPI
-void init_mpi_structs();
-#endif
+		     int num_swarms, region_t region);
 
 // Command Line Option Processing
 int find_arg_idx(int argc, char** argv, const char* option);
