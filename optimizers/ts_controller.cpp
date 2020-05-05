@@ -62,6 +62,8 @@ void TransitionStateController::listen() {
 
 				// If we've received a convergence message from process p
 				if (flags[p]) {
+					flags[p] = 0;
+
 					ts_link_t link = rank_ts_map[p];
 
 					// Store the relevant information
@@ -119,7 +121,12 @@ void TransitionStateController::listen() {
 			}
 		}
 
-
+		any_active = false;
+		for (int p = 1; p < processes; p++) {
+			if (active_processes[p]) {
+				any_active = true;
+			}
+		}
 	}
 }
 

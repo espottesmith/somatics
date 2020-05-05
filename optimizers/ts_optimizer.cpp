@@ -10,6 +10,10 @@
 
 #include <omp.h>
 
+#ifdef USE_MPI
+#include <mpi.h>
+#endif
+
 #include "../agents/ts_agent.h"
 #include "ts_optimizer.h"
 #include "../pes/pes.h"
@@ -19,7 +23,7 @@
 /*
  * TAGS:
  * 0 - sending (int) have_work (always controller -> optimizer)
- * 1 - sending (int) link (always controller -> optimizer)
+ * 1 - sending (int w/ dimension 2) link (always controller -> optimizer)
  * 2 - sending (int) convergence (always optimizer -> controller)
  * 3 - sending (double* w/ dimension num_dim) TS (always optimizer -> controller)
  */

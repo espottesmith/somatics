@@ -113,7 +113,7 @@ ts_agent.o: pes/pes.h utils/math.h agents/ts_agent.h agents/ts_agent.cpp
 	@echo "Creating TS agent object..."
 	${CXX} ${CFLAGS} -c agents/ts_agent.cpp
 
-ts_optimizer.o: pes/pes.h utils/math.h agents/ts_agent.h optimizers/ts_optimizer.h optimizers/ts_optimizer.cpp
+ts_optimizer.o: pes/pes.h utils/math.h agents/ts_agent.h optimizers/ts_optimizer.h optimizers/ts_optimizer.cpp common.h
 	@echo "Creating TS optimizer object..."
 	${CXX} ${CFLAGS} -c optimizers/ts_optimizer.cpp
 endif
