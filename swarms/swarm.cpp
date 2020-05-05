@@ -412,10 +412,6 @@ void MinimaNicheSwarm::compute_radii_subswarms () {
 
 void MinimaNicheSwarm::merge_subswarms () {
 
-#ifdef USE_MPI
-	// merge_subswarms_mpi();
-#endif
-
 	std::vector<bool> merged;
 	merged.resize(num_subswarm);
 	for (int p = 0; p < num_subswarm; p++) { merged[p] = false; }
@@ -433,16 +429,15 @@ void MinimaNicheSwarm::merge_subswarms () {
 			Rsum_sq *= Rsum_sq;
 
 			int num_min_agent_combine = subswarms[p].num_min_agent + subswarms[q].num_min_agent;
-
 #ifdef USE_MPI
 			for (int i=0; i<subswarms[p].num_ids; i++) {
-				int swarm_id = subswarms[p].swarm_ids[i];
-				num_min_agent_combine += swarm_register[swarm_id].num_agent;
-			}
-            for (int i=0; i<subswarms[q].num_ids; i++) {
-				int swarm_id = subswarms[q].swarm_ids[i];
-				num_min_agent_combine += swarm_register[swarm_id].num_agent;
-            }
+	int swarm_id = subswarms[p].swarm_ids[i];
+	num_min_agent_combine += swarm_register[swarm_id].num_agent;
+      }
+      for (int i=0; i<subswarms[q].num_ids; i++) {
+	int swarm_id = subswarms[q].swarm_ids[i];
+	num_min_agent_combine += swarm_register[swarm_id].num_agent;
+      }
 #endif
 
 			if (dist_sq < Rsum_sq    &&
@@ -451,44 +446,49 @@ void MinimaNicheSwarm::merge_subswarms () {
 			    num_min_agent_combine <= max_subswarm_size      ) {
 
 				/* printf("R sum = %f \n", swarm_rsq[p] + swarm_rsq[q]); */
-				if (verbosity > 1) {
+				if (verbosity > 1)
 					printf("merging subswarms %i & %i \n", p, q);
-				}
 
 				for (int i = 0; i < subswarms[q].num_min_agent; i++) {
+
+					subswarms[p].agents.push_back( MinimaAgent (subswarms[q].agents[i].base,
+					                                            subswarms[p].inertia,
+					                                            subswarms[p].cognit,
+					                                            subswarms[p].social,
+					                                            subswarms[q].agents[i].var_interval) );
+					subswarms[p].num_min_agent++;
 
 					swarm_map[subswarms[q].agents[i].base.id] = p;
 					agent_map[subswarms[q].agents[i].base.id] = subswarms[p].num_min_agent - 1;
 
 				}
 
-			}
-
 #ifdef USE_MPI
-			for (int i = 0; i < subswarms[q].num_ids; i++) {
-			  int swarm_id = subswarms[q].swarm_ids[i];
-			  subswarms[p].add_swarm_id( swarm_id );
-			}
-			for (int i = 0; i < subswarms[p].num_ids; i++) {
-	            int swarm_id = subswarms[p].swarm_ids[i];
-	            swarm_register[swarm_id].num_agent = num_min_agent_combine;
-			}
+				for (int i = 0; i < subswarms[q].num_ids; i++) {
+	  int swarm_id = subswarms[q].swarm_ids[i];
+	  subswarms[p].add_swarm_id( swarm_id );
+	}
+	for (int i = 0; i < subswarms[p].num_ids; i++) {
+	  int swarm_id = subswarms[p].swarm_ids[i];
+	  swarm_register[swarm_id].num_agent = num_min_agent_combine;
+	}
 #endif
 
-			swarm_rsq[p] = -1.0;
-			fitness_best_globals[p] = -1.0;
+				swarm_rsq[p] = -1.0;
+				fitness_best_globals[p] = -1.0;
 
-			// Remove subswarm
-			to_remove.push_back(q);
-			merged[q] = true;
+				// Remove subswarm
+				to_remove.push_back(q);
+				merged[q] = true;
 
-			/* printf("merged subswarms %i & %i \n", p, q); */
+				/* printf("merged subswarms %i & %i \n", p, q); */
 
+			}
 		}
+
 	}
 
-
-// Remove subswarm
+	// Remove subswarm
 	for (int i = to_remove.size() - 1; i >= 0; i--) {
 		int q = to_remove[i];
 		for (int j = 0; j < to_remove.size(); j++) {
@@ -504,20 +504,7 @@ void MinimaNicheSwarm::merge_subswarms () {
 		pos_best_globals.erase (         pos_best_globals.begin() + q );
 	}
 
-// Remove subswarm
-	for (int i = to_remove.size() - 1; i >= 0; i--) {
-		int q = to_remove[i];
-		for (int j = 0; j < to_remove.size(); j++) {
-			if (to_remove[j] > q) { to_remove[j]--; }
-		}
-		subswarms.erase (                       subswarms.begin() + q );
-		swarm_rsq.erase (                       swarm_rsq.begin() + q );
-		fitness_best_globals.erase ( fitness_best_globals.begin() + q );
-		pos_best_globals.erase (         pos_best_globals.begin() + q );
-	}
-
 	num_subswarm -= to_remove.size();
-
 }
 
 void MinimaNicheSwarm::add_agents_subswarms () {
