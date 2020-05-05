@@ -609,14 +609,16 @@ void TransitionStateOptimizer::receive() {
 	// First, learn if there's work to do
 	int work_to_do;
 	MPI_Recv(&work_to_do, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	std::cout << "OPTIMIZER " << rank << " SUCCESSFULLY RECEIVED work_to_do" << std::endl;
 
 	// If there is, then prepare to do that work
 	if (work_to_do) {
 		active = true;
 
-		int* link;
+		int* link = new int[2];
 
-		MPI_Recv((void*) link, 2, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv(link, 2, MPI_INT, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		std::cout << "OPTIMIZER " << rank << " SUCCESSFULLY RECEIVED link" << std::endl;
 
 		min_one_id = link[0];
 		min_two_id = link[1];
@@ -635,9 +637,11 @@ void TransitionStateOptimizer::send() {
 		success = 1;
 	}
 	MPI_Send(&success, 1, MPI_INT, 0, 2, MPI_COMM_WORLD);
+	std::cout << "OPTIMIZER " << rank << " SUCCESSFULLY SENT success" << std::endl;
 
 	if (all_converged) {
-		MPI_Send((void*) transition_state, num_dim, MPI_DOUBLE, 0, 3, MPI_COMM_WORLD);
+		MPI_Send(transition_state, num_dim, MPI_DOUBLE, 0, 3, MPI_COMM_WORLD);
+		std::cout << "OPTIMIZER " << rank << " SUCCESSFULLY SENT transition_state" << std::endl;
 	}
 }
 

@@ -1,4 +1,5 @@
 #include <mpi.h>
+#include <iostream>
 
 #include "../common.h"
 #include "ts_controller.h"
@@ -19,14 +20,18 @@ void TransitionStateController::distribute() {
 			// Not going to use this request; we don't care
 			MPI_Request request_work, request_link;
 			MPI_Isend(&have_work, 1, MPI_INT, p, 0, MPI_COMM_WORLD, &request_work);
+			std::cout << "CONTROLLER SUCCESSFULLY SENT have_work to " << p << std::endl;
 
 			int link[2];
 			link[0] = rank_ts_map[p].minima_one;
 			link[1] = rank_ts_map[p].minima_two;
 			MPI_Isend(&link, 2, MPI_INT, p, 1, MPI_COMM_WORLD, &request_link);
+			std::cout << "CONTROLLER SUCCESSFULLY SENT link to " << p << std::endl;
+
 		} else {
 			MPI_Request request_work;
 			MPI_Isend(&have_work, 1, MPI_INT, p, 0, MPI_COMM_WORLD, &request_work);
+			std::cout << "CONTROLLER SUCCESSFULLY SENT no work to " << p << std::endl;
 		}
 	}
 }
@@ -62,6 +67,7 @@ void TransitionStateController::listen() {
 
 				// If we've received a convergence message from process p
 				if (flags[p]) {
+					std::cout << "CONTROLLER SUCCESSFULLY RECEIVED from " << p << std::endl;
 					flags[p] = 0;
 
 					ts_link_t link = rank_ts_map[p];
@@ -70,8 +76,9 @@ void TransitionStateController::listen() {
 					if (converged[p]) {
 						link.converged = true;
 
-						double* ts;
-						MPI_Recv((void*) ts, num_dim, MPI_DOUBLE, p, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+						double* ts = new double[num_dim];
+						MPI_Recv(ts, num_dim, MPI_DOUBLE, p, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+						std::cout << "CONTROLLER SUCCESSFULLY RECEIVED ts from " << p << std::endl;
 
 						link.ts_position = ts;
 						transition_states.push_back(link);
@@ -88,6 +95,7 @@ void TransitionStateController::listen() {
 
 						// Tell process that we have more work for it to do
 						MPI_Isend(&have_work, 1, MPI_INT, p, 0, MPI_COMM_WORLD, &request_work);
+						std::cout << "CONTROLLER SUCCESSFULLY SENT have_work to " << p << std::endl;
 
 						int min_link[2];
 						min_link[0] = to_allocate[0][0];
@@ -105,6 +113,7 @@ void TransitionStateController::listen() {
 
 						// Send the link
 						MPI_Isend(&min_link, 2, MPI_INT, p, 1, MPI_COMM_WORLD, &request_link);
+						std::cout << "CONTROLLER SUCCESSFULLY SENT min_link to " << p << std::endl;
 
 						to_allocate.erase(to_allocate.begin());
 
@@ -116,6 +125,7 @@ void TransitionStateController::listen() {
 
 						MPI_Request request_work;
 						MPI_Isend(&have_work, 1, MPI_INT, p, 0, MPI_COMM_WORLD, &request_work);
+						std::cout << "CONTROLLER SUCCESSFULLY SENT no work to " << p << std::endl;
 					}
 				}
 			}
