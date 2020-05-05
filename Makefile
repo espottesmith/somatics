@@ -75,8 +75,8 @@ OBJS += molecule.o xyz.o xtb_adapter.o xtb_surface.o
 DEFINES	+= -DUSE_MOLECULE=$(USE_MOLECULE)
 endif
 
-execute: $(OBJS)
-	${CXX} -o execute $(OBJS) $(EXTERN) $(DEFINES)
+somatics: $(OBJS)
+	${CXX} -o somatics $(OBJS) $(EXTERN) $(DEFINES)
 
 main.o: $(DEPS)
 	@echo "Creating main object..."
@@ -152,4 +152,4 @@ endif
 
 clean:
 	@echo "Cleaning up"
-	rm execute *.o
+	rm somatics *.o
