@@ -303,11 +303,9 @@ bool single_process = true;
 
 		    ts_link_t* rank_ts_map = new ts_link_t[num_procs];
 
-		    int num_pairs = 0;
 		    for (int i = 0; i < num_min; i++) {
 		        for (int j = 0; j < i; j++) {
 					if (outpairs[i * num_min + j] == 1) {
-						num_pairs++;
 						minima_link_t link;
 						link.minima_one = i;
 						link.minima_two = j;
@@ -317,7 +315,7 @@ bool single_process = true;
 		    }
 
 		    int allocated = 0;
-		    for (int pair = 0; pair < num_pairs; pair++) {
+		    for (int pair = 0; pair < to_allocate.size(); pair++) {
 		        for (int proc = 1; proc < num_procs; proc++) {
 					if (!active[proc]) {
 						active[proc] = true;
@@ -359,6 +357,8 @@ bool single_process = true;
 #endif // USE_MPI
 
 	if (single_process) {
+		std::cout << "RUNNNING IN SINGLE PROCESS REGION" << std::endl;
+
 #ifdef USE_QHULL
 			int* outpairs = delaunay(minima);
 			int num_min = minima.size();
@@ -383,7 +383,6 @@ bool single_process = true;
 		                    std::cout << ts[d] << " ";
 		                }
 		                std::cout << std::endl;
-		                break;
 	                }
 	                std::cout << std::endl;
 	                ts_opt.reset();

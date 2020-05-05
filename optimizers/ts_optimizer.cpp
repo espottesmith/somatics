@@ -457,7 +457,6 @@ void TransitionStateOptimizer::run() {
 
 	    if (all_converged) {
 			std::cout << "PATH CONSTRUCTION SUCCEEDED" << std::endl;
-			iteration = 0;
 			break;
 	    } else {
 	        std::cout << "PATH CONSTRUCTION FAILED" << std::endl;
@@ -473,6 +472,11 @@ void TransitionStateOptimizer::run() {
 
 	if (all_converged) {
 		find_ts();
+	}
+
+	// Accurately report iteration number
+	if (iteration < allowed_cycles) {
+		iteration++;
 	}
 
 #ifdef USE_MPI
