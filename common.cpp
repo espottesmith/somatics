@@ -226,7 +226,7 @@ MPI_Datatype SwarmPropMPI;
 MPI_Datatype MinimaLinkMPI;
 #endif // USE_TS_FINDER
 
-void init_mpi_structs () {
+void init_mpi_structs() {
 
   // Create MPI Agent Base Type
   {
@@ -302,12 +302,10 @@ void init_mpi_structs () {
 #ifdef USE_TS_FINDER
   {
   	minima_link_t link;
-  	link.minima_one = new double[num_dim];
-  	link.minima_two = new double[num_dim];
 
   	const int nitems = 2;
-  	int blocklengths[nitems] = {num_dim, num_dim};
-  	MPI_Datatype types[nitems] = {MPI_DOUBLE, MPI_DOUBLE};
+  	int blocklengths[nitems] = {1, 1};
+  	MPI_Datatype types[nitems] = {MPI_INT, MPI_INT};
   	MPI_Aint offsets[nitems], base;
 
   	int count = 0;
@@ -325,4 +323,4 @@ void init_mpi_structs () {
 #endif // USE_TS_FINDER
 
 }
-#endif
+#endif // USE_MPI

@@ -17,7 +17,11 @@
 #endif
 #ifdef USE_TS_FINDER
 #include "optimizers/ts_optimizer.h"
-#endif
+#ifdef USE_MPI
+#include "optimizers/ts_controller.h"
+#endif // USE_MPI
+#endif // USE_TS_FINDER
+
 #ifdef USE_QHULL
 #include "voronoi/voronoi.h"
 #endif
@@ -170,7 +174,7 @@ int main(int argc, char** argv) {
 	MPI_Init(&argc, &argv);
 	MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
 	MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-	init_mpi_structs ();
+	init_mpi_structs();
 #endif
 
 #ifdef USE_MIN_FINDER
@@ -273,17 +277,6 @@ int main(int argc, char** argv) {
 
 	// At this point, everything has the minima vector
 
-#ifdef USE_MPI
-	if (mpi_rank == 0) {
-#endif
-		#ifdef USE_QHULL
-			int* outpairs = delaunay(minima);
-			int num_min = minima.size();
-		#endif
-#ifdef USE_MPI
-	}
-#endif
-
 #ifdef USE_TS_FINDER
 
 bool single_process = true;
@@ -294,6 +287,11 @@ bool single_process = true;
 		single_process = false;
 
 		if (mpi_rank == 0) {
+#ifdef USE_QHULL
+			int* outpairs = delaunay(minima);
+			int num_min = minima.size();
+#endif
+
 			bool* active = new bool[num_procs];
 
 			for (int proc = 0; proc < num_procs; proc++) {
@@ -328,7 +326,7 @@ bool single_process = true;
 						link.minima_one = to_allocate[pair].minima_one;
 						link.minima_two = to_allocate[pair].minima_two;
 						link.owner = proc;
-						link.iteration = 0;
+						link.iterations = 0;
 						link.steps = 0;
 						link.converged = false;
 						rank_ts_map[proc] = link;
@@ -361,6 +359,10 @@ bool single_process = true;
 #endif // USE_MPI
 
 	if (single_process) {
+#ifdef USE_QHULL
+			int* outpairs = delaunay(minima);
+			int num_min = minima.size();
+#endif
 		TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes, minima, savefreq, 0);
 		for (int i = 0; i < num_min; i++) {
 	        for (int j = 0; j < i; j++) {

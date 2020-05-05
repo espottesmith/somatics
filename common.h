@@ -99,7 +99,7 @@ void save_molecular(std::ofstream& fsave, std::string* species, agent_base_t* ag
 void save_polychrome(std::ofstream& fsave, agent_base_t** agent_bases, int* num_agent_bases,
                      int num_swarms, region_t region);
 #ifdef USE_MPI
-void init_mpi_structs ();
+void init_mpi_structs();
 #endif
 
 // Command Line Option Processing

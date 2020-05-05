@@ -7,7 +7,6 @@
 
 #include "../common.h"
 
-#ifdef USE_MPI
 class TransitionStateController {
 private:
 	int processes;
@@ -21,14 +20,15 @@ private:
     std::vector<ts_link_t> failures;
 
 public:
+#ifdef USE_MPI
 	void distribute();
 	void listen();
+#endif // USE_MPI
 
 	TransitionStateController(int processes_in, std::vector<double*> minima_in,
 			bool* active_processes_in, std::vector<minima_link_t> to_allocate_in,
 			ts_link_t* rank_ts_map_in);
 
 };
-#endif // USE_MPI
 
 #endif //TS_CONTROLLER_H
