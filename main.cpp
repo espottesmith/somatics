@@ -357,9 +357,13 @@ bool single_process = true;
 
 			TransitionStateController controller = TransitionStateController(num_procs,
 					minima, active, to_allocate, rank_ts_map);
-
+			auto t_start_ts_find = std::chrono::steady_clock::now();
 			controller.distribute();
 			controller.listen();
+            auto t_end_ts_find = std::chrono::steady_clock::now();
+            std::chrono::duration<double> diff_ts = t_end_ts_find - t_start_ts_find;
+			double time_ts_find = diff_ts.count();
+            std::cout << "CONTROLLER TOTAL TIME: " << time_ts_find << std::endl;
 
 			int numts = controller.transition_states.size();
 			int numfails = controller.failures.size();
@@ -389,7 +393,12 @@ bool single_process = true;
 
 			while (ts_opt.active){
 				ts_opt.initialize();
+				auto t_start_ts_find = std::chrono::steady_clock::now();
 				ts_opt.run();
+	            auto t_end_ts_find = std::chrono::steady_clock::now();
+	            std::chrono::duration<double> diff_ts = t_end_ts_find - t_start_ts_find;
+				double time_ts_find = diff_ts.count();
+				std::cout << "RANK " << mpi_rank << "\t iterations: " << ts_opt.get_iteration() << "\t step #: " << ts_opt.get_step_num() << std::endl;
 				ts_opt.reset();
 			}
 		}

@@ -244,7 +244,6 @@ void TransitionStateOptimizer::update() {
 
 #pragma omp master
 	{
-		// std::cout << "TSOptimizer (update): past first barrier" << std::endl;
 		// Average position of swarms; used for scoring swarms and directing motion
 		average_position_one = vector_average(current_positions_one, num_dim);
 		average_position_two = vector_average(current_positions_two, num_dim);
@@ -312,9 +311,6 @@ void TransitionStateOptimizer::update() {
 
 #pragma omp barrier
 
-// #pragma omp master
-// 	std::cout << "TSOptimizer (update): past second barrier" << std::endl;
-
 	// Gather scores
 	for (a = 0; a < num_agents_ts * 2; a++) {
 		if (ownership[a] == thread_num) {
@@ -333,8 +329,6 @@ void TransitionStateOptimizer::update() {
 
 #pragma omp barrier
 
-// #pragma omp master
-// 	std::cout << "TSOptimizer (update): past third barrier" << std::endl;
 
 	// Define movement vectors for each agent
 	double *rando_one = new double[num_dim];
@@ -362,8 +356,6 @@ void TransitionStateOptimizer::update() {
 			}
 		}
 	}
-// #pragma omp master
-// 	std::cout << "TSOptimizer (update): past final barrier" << std::endl;
 }
 
 
@@ -410,9 +402,7 @@ void TransitionStateOptimizer::run() {
 		        if (converged) {
 		            s = num_steps_allowed;
 		        }
-
-			// #pragma omp master
-			//             std::cout << "TSOptimizer (run): STEP NUMBER " << step_num << std::endl;
+		        
 
 		        update();
 			#pragma omp barrier
