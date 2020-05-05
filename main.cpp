@@ -365,7 +365,7 @@ bool single_process = true;
 			int numfails = controller.failures.size();
 			for (int ts = 0; ts < numts; ts++) {
 				if (controller.transition_states[ts].converged) {
-					std::cout << controller.transition_states[ts].minima_one << " " << controller.transition_states[ts].minima_one << std::endl;
+					std::cout << controller.transition_states[ts].minima_one << " " << controller.transition_states[ts].minima_two << std::endl;
 					for (int d = 0; d < num_dim; d++) {
 						std::cout << controller.transition_states[ts].ts_position[d] << " ";
 					}
@@ -375,8 +375,9 @@ bool single_process = true;
 			}
 
 			for (int fail = 0; fail < numfails; fail++) {
-				if (!controller.transition_states[fail].converged) {
+				if (!controller.failures[fail].converged) {
 					std::cout << controller.failures[fail].minima_one << " " << controller.failures[fail].minima_two << ": NO TS FOUND" << std::endl;
+					std::cout << std::endl;
 				}
 			}
 
