@@ -16,10 +16,11 @@ private:
     bool* active_processes;
     std::vector<minima_link_t> to_allocate;
     ts_link_t* rank_ts_map;
+
+public:
     std::vector<ts_link_t> transition_states;
     std::vector<ts_link_t> failures;
 
-public:
 #ifdef USE_MPI
 	void distribute();
 	void listen();

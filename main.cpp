@@ -340,6 +340,26 @@ bool single_process = true;
 					minima, active, to_allocate, rank_ts_map);
 
 			controller.distribute();
+			controller.listen();
+
+			int numts = controller.transition_states.size();
+			int numfails = controller.failures.size();
+			for (int ts = 0; ts < numts; ts++) {
+				if (controller.transition_states[ts].converged) {
+					std::cout << controller.transition_states[ts].minima_one << " " << controller.transition_states[ts].minima_one << std::end;
+					for (int d = 0; d < num_dim; d++) {
+						std::cout << controller.transition_states[ts].ts_position[d] << " ";
+					}
+					std::cout << std::endl;
+					std::cout << std::endl;
+				}
+			}
+
+			for (int fail = 0; fail < numfails; fail++) {
+				if (!controller.transition_states[fail].converged) {
+					std::cout << controller.failures[fail].minima_one << " " << controller.failures[fail].minima_two << ": NO TS FOUND" << std::endl;
+				}
+			}
 
 		} else {
 			TransitionStateOptimizer ts_opt = TransitionStateOptimizer(0.01, 0.01, max_iter, pes,
