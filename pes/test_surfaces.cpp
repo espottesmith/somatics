@@ -56,41 +56,21 @@ Muller_Brown::Muller_Brown (): PotentialEnergySurface(){}
 double Halgren_Lipscomb::calculate_energy(double* position, std::string name_space){
     double x = position[0];
     double y = position[1];
-    return pow((x - y) * (x - y) - 5.0/3.0, 2) + 4 * (x * y - 4) * (x * y - 4) + x - y;
+    return pow((x - y) * (x - y) - 5.0/3.0 * 5.0/3.0, 2) + 4 * (x * y - 4) * (x * y - 4) + x - y;
 }
 
 double* Halgren_Lipscomb::calculate_gradient(double* position, std::string name_space) {
     double x = position[0];
     double y = position[1];
     double* gradient = new double[2];
-    gradient[0] = 2 * ((x - y) * (x - y) - 5.0/3.0) * (x - y) + 8 * (x * y - 4) * y + 1;
-    gradient[1] = -2 * ((x - y) * (x - y) - 5.0/3.0) * (x - y) + 8 * (x * y - 4) * x - 1;
+    gradient[0] = 2 * ((x - y) * (x - y) - 5.0/3.0 * 5.0/3.0) * (x - y) + 8 * (x * y - 4) * y + 1;
+    gradient[1] = -2 * ((x - y) * (x - y) - 5.0/3.0 * 5.0/3.0) * (x - y) + 8 * (x * y - 4) * x - 1;
     return gradient;
 }
 
 Halgren_Lipscomb::Halgren_Lipscomb (double* lower_bounds_in, double* upper_bounds_in): PotentialEnergySurface(2, lower_bounds_in, upper_bounds_in){}
 
 Halgren_Lipscomb::Halgren_Lipscomb (): PotentialEnergySurface(){}
-
-
-double Cerjan_Miller::calculate_energy(double* position, std::string name_space) {
-    double x = position[0];
-    double y = position[1];
-    return (1 - y*y) * x*x * exp(- x*x) + 0.2 * y*y;
-}
-
-double* Cerjan_Miller::calculate_gradient(double* position, std::string name_space) {
-    double x = position[0];
-    double y = position[1];
-    double* gradient = new double[2];
-    gradient[0] = 2 * x * (1 - y*y) * exp(-x*x) - 2 * (1 - y*y) * pow(x,3) * exp(-x*x);
-    gradient[1] = -2 * y * x*x * exp(-x*x) + 0.4 * y;
-    return gradient;
-}
-
-Cerjan_Miller::Cerjan_Miller (double* lower_bounds_in, double* upper_bounds_in): PotentialEnergySurface(2, lower_bounds_in, upper_bounds_in){}
-
-Cerjan_Miller::Cerjan_Miller (): PotentialEnergySurface(){}
 
 
 double Quapp_Wolfe_Schlegel::calculate_energy(double* position, std::string name_space) {

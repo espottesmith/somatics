@@ -5,6 +5,7 @@
 
 #include <utility>
 #include <iostream>
+#include <vector>
 #include "../agents/ts_agent.h"
 #include "../pes/pes.h"
 
@@ -16,30 +17,36 @@ private:
     double min_step_size;
     PotentialEnergySurface* pes;
     int save_freq;
-    char* filename;
 
-    double* min_one;
-    double* min_two;
+    std::vector<double*> minima;
 
     std::vector<TransitionStateAgent> agents_one;
     std::vector<double*> current_positions_one;
     double* average_position_one;
+    double* energies_one;
+    double average_energy_one;
     double* grad_rmss_one;
     double* grad_norms_one;
     double* scores_one;
     double hill_score_one;
     double* hill_scores_one;
     std::vector<double> history_hill_scores_one;
+    std::vector<double*> history_average_positions_one;
+    std::vector<double> history_average_energies_one;
 
     std::vector<TransitionStateAgent> agents_two;
     std::vector<double*> current_positions_two;
     double* average_position_two;
+    double* energies_two;
+    double average_energy_two;
     double* grad_rmss_two;
     double* grad_norms_two;
     double* scores_two;
     double hill_score_two;
     double* hill_scores_two;
     std::vector<double> history_hill_scores_two;
+    std::vector<double*> history_average_positions_two;
+    std::vector<double> history_average_energies_two;
 
     // Score parameters
     double average_grad_norm_one;
@@ -61,24 +68,41 @@ private:
     double min_distance_minima;
     int num_steps_allowed;
     int step_num;
+    int iteration;
 
     int* ownership;
     int threads;
 
+    bool first;
+    int rank;
+
 public:
 
 	bool all_converged;
+	bool active;
+    int min_one_id;
+    int min_two_id;
+    double* min_one;
+    double* min_two;
+    char* filename;
+
+    double* transition_state;
 
 	int get_step_num() { return step_num; }
+	int get_iteration() { return iteration; }
 
+	void reset();
+	void initialize();
     void update();
     bool check_convergence();
     void run();
-    double* find_ts();
+    void find_ts();
+
+    void receive();
+    void send();
 
     TransitionStateOptimizer(double step_size_in, double distance_goal_in, int num_steps_in,
-    		PotentialEnergySurface* pes_in, double* min_one_in, double* min_two_in, int save_freq_in,
-    		char *filename_in);
+    		PotentialEnergySurface* pes_in, std::vector<double*> minima_in, int save_freq_in, int rank_in);
 
 };
 
