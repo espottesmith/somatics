@@ -3,7 +3,7 @@
 ON_CORI           = TRUE
 USE_KNL           = TRUE
 
-USE_MPI           = FALSE
+USE_MPI           = TRUE
 USE_MOLECULE      = FALSE
 
 USE_MIN_FINDER    = TRUE
