@@ -204,7 +204,7 @@ void MinimaNicheSwarm::add_agents_subswarms_mpi () {
 	swarm_rsq.push_back( -1.0 );
 
 	swarm_map[agent_subswarm_bases[0].id] = num_subswarm - 1;
-	agent_map[agent_subswarm_bases[0].id] = subswarms[num_subswarm - 1].num_min_agent - 1;
+	agent_map[agent_subswarm_bases[0].id] = 0;
 
 	joined[p] = true;
 	to_remove.push_back(p);
@@ -222,10 +222,10 @@ void MinimaNicheSwarm::add_agents_subswarms_mpi () {
     for (int j = 0; j < to_remove.size(); j++) {
       if (to_remove[j] > q) { to_remove[j]--; }
     }
-    agents.erase (agents.begin() + q );
-    for (int i = 0; i < swarm_map.size(); i++) {
-      if (agent_map[i] > q && swarm_map[i] == -1) { agent_map[i]--; }
+    for (int i = 0; i < num_min_agent; i++) {
+      if (agent_map[agents[i].base.id] > q) { agent_map[agents[i].base.id]--; }
     }
+    agents.erase (agents.begin() + q );
   }
 
   num_min_agent -= to_remove.size();
@@ -255,7 +255,7 @@ void MinimaNicheSwarm::form_subswarm_reduce_mpi ( std::vector< std::vector < map
   for (int p = 0; p < num_procs; p++) {
     MPI_Bcast(&sizes_to_form[p], 1, MPI_INT, p, MPI_COMM_WORLD);
   }
-    
+  
   for (int p = 0; p < num_procs; p++) {
     map_to_form[p].resize( sizes_to_form[p] );
     distances[p].resize( sizes_to_form[p] );
