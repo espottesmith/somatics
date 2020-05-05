@@ -398,7 +398,7 @@ bool single_process = true;
 	            auto t_end_ts_find = std::chrono::steady_clock::now();
 	            std::chrono::duration<double> diff_ts = t_end_ts_find - t_start_ts_find;
 				double time_ts_find = diff_ts.count();
-				std::cout << "RANK " << mpi_rank << "\t iterations: " << ts_opt.get_iteration() << "\t step #: " << ts_opt.get_step_num() << std::endl;
+				std::cout << "RANK " << mpi_rank << "\t iterations: " << ts_opt.get_iteration() << "\t step #: " << ts_opt.get_step_num() << "\t time : " << time_ts_find << std::endl;
 				ts_opt.reset();
 			}
 		}

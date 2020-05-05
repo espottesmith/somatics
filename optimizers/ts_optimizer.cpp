@@ -402,7 +402,7 @@ void TransitionStateOptimizer::run() {
 		        if (converged) {
 		            s = num_steps_allowed;
 		        }
-		        
+
 
 		        update();
 			#pragma omp barrier
