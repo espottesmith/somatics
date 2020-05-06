@@ -97,8 +97,10 @@ int main(int argc, char** argv) {
 	omp_set_num_threads(num_threads);
 
         verbosity = find_int_arg(argc, argv, "-verb", 0);
+#ifdef USE_MPI
 	if (mpi_rank != mpi_root) { verbosity = -1; }
-
+#endif
+	
 	if (verbosity >= 0) {
 	  std::cout << "MAIN: NUMBER OF THREADS " << omp_get_num_threads() << std::endl;
 	  std::cout << "MAIN: MAX NUMBER OF THREADS " << omp_get_max_threads() << std::endl;

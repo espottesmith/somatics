@@ -134,9 +134,13 @@ std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSw
     // if (verbosity > 0){ printf("Evolve subswarms \n"); }
     // swarm.evolve_subswarms();
 
+    // Update maps to all niche agents
+    if (verbosity > 0){ printf("Update maps to niche agents \n"); }
+    swarm.update_maps_niche_agents();
+
     // Evolve all niche agents
     if (verbosity > 0){ printf("Evolve niche agents \n"); }
-    swarm.evolve_niche_agents ();
+    swarm.evolve_niche_agents();
 
     // Merge subswarms
     if (verbosity > 0){ printf("Merge subswarms \n"); }
@@ -177,7 +181,12 @@ std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSw
 
   minima.resize(0);
   for (int i = 0; i < swarm.pos_best_globals.size(); i++) {
+#ifdef USE_MPI
+    if (swarm.swarm_register[swarm.subswarms[i].swarm_ids[0]].num_agent
+	>= UNIQUE_MIN_SIZE_LOWBOUND) {
+#else
     if (swarm.subswarms[i].num_min_agent >= UNIQUE_MIN_SIZE_LOWBOUND) {
+#endif
       std::vector<double> mins (num_dim);
       for (int d = 0; d < num_dim; d++) { mins[d] = swarm.pos_best_globals[i][d]; }
       minima.push_back( mins );

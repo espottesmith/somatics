@@ -96,6 +96,7 @@ class MinimaNicheSwarm : public MinimaSwarm {
 
   void cognition_only ();
   void evolve_subswarms ();
+  void update_maps_niche_agents ();
   void evolve_niche_agents ();
   void compute_radii_subswarms ();
   void merge_subswarms ();

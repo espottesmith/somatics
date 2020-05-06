@@ -247,9 +247,6 @@ void MinimaNicheSwarm::add_agents_subswarms_mpi () {
 	  fitness_best_globals.push_back( -1.0 );
 	  swarm_rsq.push_back( -1.0 );
 
-	  swarm_map[agent_subswarm_bases[0].id] = num_subswarm - 1;
-	  agent_map[agent_subswarm_bases[0].id] = 0;
-
 	  joined[p] = true;
 	  to_remove.push_back(p);
 
@@ -267,11 +264,7 @@ void MinimaNicheSwarm::add_agents_subswarms_mpi () {
     for (int j = 0; j < to_remove.size(); j++) {
       if (to_remove[j] > q) { to_remove[j]--; }
     }
-    for (int i = 0; i < num_min_agent; i++) {
-      if (agent_map[agents[i].base.id] > q && swarm_map[agents[i].base.id] == -1) {
-	agent_map[agents[i].base.id]--;
-      }
-    }
+    agents[q].free_mem();
     agents.erase (agents.begin() + q );
   }
 
