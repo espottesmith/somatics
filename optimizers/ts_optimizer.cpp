@@ -468,8 +468,10 @@ void TransitionStateOptimizer::run() {
 		iteration++;
 	}
 
-	send();
-	receive();
+	if (rank > 0) {
+		send();
+		receive();
+	}
 
 }
 
