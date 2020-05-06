@@ -1,4 +1,4 @@
-.PHONY: execute clean
+.PHONY: somatics clean
 
 ON_CORI           = TRUE
 USE_KNL           = TRUE
