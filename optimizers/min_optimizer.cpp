@@ -73,7 +73,6 @@ std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSw
 
   std::vector< std::vector<double> > minima;
 
-  double fitness_best_global = -1.0;
   std::vector<double> pos_best_global;
   pos_best_global.resize(num_dim);
 
@@ -117,7 +116,15 @@ std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSw
 
     //////////////////////////////////////////////////////////////////////
 
-    fitness_diff = fitness_best_global;
+    double fitness_max = -1.0;
+    for (int i = 0; i < swarm.pos_best_globals.size(); i++) {
+      if (swarm.subswarms[i].num_min_agent >= UNIQUE_MIN_SIZE_LOWBOUND) {
+	if (swarm.fitness_best_globals[i] > fitness_max || fitness_diff == -1.0) {
+	  fitness_max = swarm.fitness_best_globals[i];
+	}
+      }
+    }
+    fitness_diff = fitness_max;
 
     // // Cognition only
     // if (verbosity > 0){ printf("Cognition only step \n"); }
@@ -147,8 +154,21 @@ std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSw
     MPI_Barrier( MPI_COMM_WORLD );
 #endif
 
-    fitness_diff = abs( (fitness_diff - fitness_best_global) / fitness_diff );
-      
+    if (fitness_diff != -1.0) {
+      fitness_max = -1.0;
+      for (int i = 0; i < swarm.pos_best_globals.size(); i++) {
+	if (swarm.subswarms[i].num_min_agent >= UNIQUE_MIN_SIZE_LOWBOUND) {
+	  if (swarm.fitness_best_globals[i] > fitness_max || fitness_diff == -1.0) {
+	    fitness_max = swarm.fitness_best_globals[i];
+	  }
+	}
+      }
+      fitness_diff = abs( (fitness_diff - fitness_max) / fitness_diff );
+    }
+#ifdef USE_MPI
+    MPI_Allreduce(&fitness_diff, &fitness_max, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    fitness_diff = fitness_max;
+#endif
     //////////////////////////////////////////////////////////////////////
 
     step++;

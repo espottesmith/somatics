@@ -78,10 +78,6 @@ void MinimaNicheSwarm::update_swarm_register_mpi () {
     MPI_Bcast(&(swarm_register[q].pos_best[0]), num_dim, MPI_DOUBLE,
 	      fitness_reduced.i, MPI_COMM_WORLD);
     
-    // double rsq_min = -1.0;
-    // MPI_Allreduce(&(swarm_register[q].radius_sq), &rsq_min, 1,
-    // 		  MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-    // if (rsq_min == -1.0) { rsq_max = -1.0; }
     MPI_Allreduce(&rsq_max, &(swarm_register[q].radius_sq), 1,
     		  MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 
@@ -148,17 +144,17 @@ void MinimaNicheSwarm::merge_subswarms_mpi () {
 
 	subswarms[p].add_swarm_id( q );
 
-	// swarm_rsq[p] = -1.0;
+	swarm_rsq[p] = -1.0;
 	fitness_best_globals[p] = -1.0;
 
 	for (int i=0; i<subswarms[p].num_ids; i++) {
 	  int swarm_id = subswarms[p].swarm_ids[i];
-	  // swarm_register[swarm_id].radius_sq = -1.0;
+	  swarm_register[swarm_id].radius_sq = -1.0;
 	  swarm_register[swarm_id].fitness_best = -1.0;
 	  swarm_register[swarm_id].num_agent = num_min_agent_combine;
 	}
 
-	// break;
+	break;
 
       }
     }

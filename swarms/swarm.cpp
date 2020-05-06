@@ -360,6 +360,7 @@ void MinimaNicheSwarm::evolve_niche_agents () {
 			subswarms[i].rho *= 0.8;
 		} else if (subswarms[i].num_success > subswarms[i].success_limit) {
 			if (subswarms[i].rho < RHO_LIM) {
+			        // subswarms[i].rho *= 1.0;
 				subswarms[i].rho *= 1.25;
 			}
 		}
