@@ -13,10 +13,14 @@
 #include "pes/pes.h"
 
 #define UNIQUE_MIN_SIZE_LOWBOUND   3
-#define RHO_LIM                    0.05
+#define RHO_LIM                    0.02
 #define RSQ_LIM                    1.0
 #define DIST_LIM                   1000000.00
 #define FITNESS_LIM                1000000.00
+
+#define RHO_FRAC_INIT              0.1
+#define FAILURE_LIM_INIT           5
+#define SUCCESS_LIM_INIT           15
 
 extern int num_dim;
 extern int num_agents_min_tot;

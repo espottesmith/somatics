@@ -108,6 +108,14 @@ void MinimaNicheSwarm::update_swarm_register_mpi () {
 
       MPI_Allreduce(&num_agent_sum, &(swarm_register[q].num_agent), 1,
 		    MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+      if (mpi_rank != fitness_reduced.i) {
+	for (int p = 0; p < num_subswarm; p++) {
+	  for (int i = 0; i < subswarms[p].num_ids; i++) {
+	    if (subswarms[p].swarm_ids[i] == q) { subswarms[p].index_best = -1; }
+	  }
+	}
+      }
     
       // printf("swarm_index_best = %i (rank %i) \n", swarm_index_best, mpi_rank);
       // printf("rank to bcast = %i \n", fitness_reduced.i);
@@ -222,7 +230,8 @@ void MinimaNicheSwarm::add_agents_subswarms_mpi () {
 	  subswarms.push_back( MinimaSwarm (pot_energy_surf,
 					    agent_subswarm_bases, 1,
 					    inertia, cognit, social,
-					    (1.0/8.0)*sqrt(dist_sq), 5, 10) );
+					    RHO_FRAC_INIT * sqrt(dist_sq),
+					    FAILURE_LIM_INIT, SUCCESS_LIM_INIT) );
 
 	  num_subswarm++;
 	
