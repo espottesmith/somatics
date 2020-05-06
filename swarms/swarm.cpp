@@ -520,7 +520,7 @@ void MinimaNicheSwarm::merge_subswarms () {
     for (int j = 0; j < swarm_map.size(); j++) {
       if (swarm_map[j] > q) { swarm_map[j]--; }
     }
-    // subswarms[q].free_mem();
+    subswarms[q].free_mem();
     subswarms.erase (                       subswarms.begin() + q );
     swarm_rsq.erase (                       swarm_rsq.begin() + q );
     fitness_best_globals.erase ( fitness_best_globals.begin() + q );
@@ -581,13 +581,12 @@ void MinimaNicheSwarm::add_agents_subswarms () {
     for (int j = 0; j < to_remove.size(); j++) {
       if (to_remove[j] > q) { to_remove[j]--; }
     }
-    // for (int i = agents[q].base.id + 1; i < num_min_agent; i++) {
     for (int i = 0; i < num_min_agent; i++) {
       if (agent_map[agents[i].base.id] > q && swarm_map[agents[i].base.id] == -1) {
 	agent_map[agents[i].base.id]--;
       }
     }
-    // agents[q].free_mem();
+    agents[q].free_mem();
     agents.erase (agents.begin() + q );
   }
 
@@ -819,7 +818,7 @@ void MinimaNicheSwarm::form_subswarms () {
 	  agent_map[agents[i].base.id]--;
 	}
       }
-      // agents[q].free_mem();
+      agents[q].free_mem();
       agents.erase (agents.begin() + q );
     }
 

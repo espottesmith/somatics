@@ -235,7 +235,7 @@ void MinimaNicheSwarm::add_agents_subswarms_mpi () {
 
 	  num_subswarm++;
 	
-	  // delete[] agent_subswarm_bases;
+	  delete[] agent_subswarm_bases;
 	  
 #ifdef USE_MPI
 	  subswarms[num_subswarm - 1].add_swarm_id( q );

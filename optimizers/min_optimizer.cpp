@@ -40,7 +40,7 @@ void MinimaOptimizer::optimize (MinimaSwarm& swarm, std::ofstream& fsave) {
 
     for (int step = 0; (step < max_iter) && (fitness_diff > min_find_tol || fitness_diff <= 0.0); ++step) {
 
-      if (fsave.good() && (step % savefreq) == 0) {
+      if (fsave.good() && (step % savefreq) == 0 && savefreq > 0) {
 	agent_base_t* agent_bases = new agent_base_t[num_min_agent];
 	for (int p=0; p<num_min_agent; p++) { agent_bases[p] = swarm.agents[p].base; }
 	save(fsave, agent_bases, num_min_agent, swarm.region);
@@ -83,7 +83,7 @@ std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSw
   while (step < max_iter && (fitness_diff > min_find_tol || fitness_diff <= 0.0)) {
 
     // Save state
-    if (fsave.good() && (step % savefreq) == 0) {
+    if (fsave.good() && (step % savefreq) == 0 && savefreq > 0) {
 
       if (verbosity > 1){ printf("saving... \n"); }
 

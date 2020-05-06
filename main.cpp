@@ -79,7 +79,8 @@ int main(int argc, char** argv) {
 	double min_find_tol = 1.0 * pow(10, -1.0 * find_int_arg(argc, argv, "-mtol", 8));
 	double unique_min_tol = 1.0 * pow(10, -1.0 * find_int_arg(argc, argv, "-utol", 6));
 	int max_iter = find_int_arg(argc, argv, "-iter", 250);
-	int savefreq = find_int_arg(argc, argv, "-freq", 1);
+	int savefreq = find_int_arg(argc, argv, "-freq", -1);
+	if (savefreq == 0) {savefreq = 0;}
 
 	char const* molfile = find_string_option(argc, argv, "-mol", nullptr);
 	char const* surf_name = find_string_option(argc, argv, "-surf", nullptr);
@@ -187,8 +188,7 @@ int main(int argc, char** argv) {
 	
 #ifdef USE_MIN_FINDER
 #ifdef USE_MPI
-	std::string filename = "minima" + std::to_string(mpi_rank) + ".txt";
-	std::ofstream fsave(filename);
+	std::string filename = "minima_agents_pos_" + std::to_string(mpi_rank) + ".txt";
 
 	int num_agents_min = (num_agents_min_tot + num_procs - 1) / num_procs;
 	if (mpi_rank == num_procs - 1) {
@@ -197,13 +197,18 @@ int main(int argc, char** argv) {
 	if (verbosity > 1)
 	  printf("num agents = %i (rank = %i) \n", num_agents_min, mpi_rank);
 #else
-	std::string filename = "minima.txt";
-	std::ofstream fsave(filename);
+	std::string filename = "minima_agents_pos.txt";
 
 	int num_agents_min = num_agents_min_tot;
 	if (verbosity > 1)
 	  printf("num agents = %i \n", num_agents_min);
 #endif
+
+	if (savefreq <= 0) {
+	  filename.clear();
+	}
+
+	std::ofstream fsave(filename);
 
 	agent_base_t* min_agent_bases = new agent_base_t[num_agents_min];
 
@@ -293,7 +298,7 @@ int main(int argc, char** argv) {
 		fsave.close();
 	}
 
-	// swarm.free_mem();
+	swarm.free_mem();
 
 	for (int a = 0; a < num_agents_min; a++) {
 		delete[] min_agent_bases[a].pos;
