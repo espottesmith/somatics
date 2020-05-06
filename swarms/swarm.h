@@ -81,6 +81,7 @@ class MinimaNicheSwarm : public MinimaSwarm {
 #ifdef USE_MPI
   int buffsize, swarm_tally;
   swarm_prop_t* swarm_register;
+  std::vector< int > swarm_tallies;
 #endif
 
   std::vector< int > swarm_map;

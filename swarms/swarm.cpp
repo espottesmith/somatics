@@ -229,16 +229,16 @@ MinimaNicheSwarm::MinimaNicheSwarm (PotentialEnergySurface* pot_energy_surf_in,
 
 #ifdef USE_MPI
 	swarm_tally = 0;
-  buffsize = num_agents_min_tot / num_procs + 1;
-  // buffsize = num_agents_min_tot;
-  swarm_register = new swarm_prop_t[num_procs * buffsize];
-  for (int i = 0; i < num_procs * buffsize; i++) {
-    swarm_register[i].id = i;
-    swarm_register[i].pos_best = new double[num_dim];
-    swarm_register[i].fitness_best = -1.0;
-    swarm_register[i].radius_sq = -1.0;
-    swarm_register[i].num_agent = 0;
-  }
+	buffsize = num_agents_min_tot / num_procs + 1;
+	swarm_tallies.resize(num_procs);
+	swarm_register = new swarm_prop_t[num_procs * buffsize];
+	for (int i = 0; i < num_procs * buffsize; i++) {
+	  swarm_register[i].id = i;
+	  swarm_register[i].pos_best = new double[num_dim];
+	  swarm_register[i].fitness_best = -1.0;
+	  swarm_register[i].radius_sq = -1.0;
+	  swarm_register[i].num_agent = 0;
+	}
 #endif
 
 	swarm_map.resize(num_min_agent_in);
@@ -260,27 +260,32 @@ void MinimaNicheSwarm::cognition_only () {
 
 void MinimaNicheSwarm::evolve_subswarms () {
 
-#ifdef USE_MPI
-	update_swarm_register_mpi ();
-#endif
-
 	if (verbosity > 1)
 		printf ("number of subswarms = %i \n", num_subswarm);
 
 	for (int i = 0; i < num_subswarm; i++) {
 
 		subswarms[i].update_fitnesses_gcpso(fitness_best_globals[i], pos_best_globals[i]);
-		subswarms[i].update_velocities_gcpso(pos_best_globals[i]);
-		subswarms[i].move_swarm();
-
 		// subswarms[i].update_fitnesses(fitness_best_globals[i], pos_best_globals[i]);
-		// subswarms[i].update_velocities(pos_best_globals[i]);
-		// subswarms[i].move_swarm();
 
 		/* printf("fitness_best (%i) = %f \n", i, fitness_best_globals[i]); */
 		/* printf("pos_best (%i) = ", i); */
 		/* for (int d = 0; d < num_dim; d++) { std::cout << " " << pos_best_globals[i][d]; } */
 		/* printf("\n"); */
+	}
+	
+#ifdef USE_MPI
+	update_swarm_register_mpi ();
+#endif
+	
+	for (int i = 0; i < num_subswarm; i++) {
+
+		subswarms[i].update_velocities_gcpso(pos_best_globals[i]);
+		subswarms[i].move_swarm();
+
+		// subswarms[i].update_velocities(pos_best_globals[i]);
+		// subswarms[i].move_swarm();
+		
 	}
 
 	compute_radii_subswarms ();
