@@ -181,17 +181,17 @@ void MinimaNicheSwarm::merge_subswarms_mpi () {
 
 	  subswarms[p].add_swarm_id( q );
 
-	  swarm_rsq[p] = -1.0;
+	  // swarm_rsq[p] = -1.0;
 	  fitness_best_globals[p] = -1.0;
 
 	  for (int i=0; i<subswarms[p].num_ids; i++) {
 	    int swarm_id = subswarms[p].swarm_ids[i];
-	    swarm_register[swarm_id].radius_sq = -1.0;
+	    // swarm_register[swarm_id].radius_sq = -1.0;
 	    swarm_register[swarm_id].fitness_best = -1.0;
 	    swarm_register[swarm_id].num_agent = num_min_agent_combine;
 	  }
 
-	  break;
+	  // break;
 
 	}
       }

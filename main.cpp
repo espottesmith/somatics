@@ -191,9 +191,16 @@ int main(int argc, char** argv) {
 	std::string filename = "minima_agents_pos_" + std::to_string(mpi_rank) + ".txt";
 
 	int num_agents_min = (num_agents_min_tot + num_procs - 1) / num_procs;
-	if (mpi_rank == num_procs - 1) {
-	  num_agents_min -= num_procs * num_agents_min - num_agents_min_tot;
-	}
+	MPI_Allreduce(&num_agents_min, &num_agents_min_tot, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+	
+	// if (mpi_rank == num_procs - 1) {
+	//   num_agents_min -= num_procs * num_agents_min - num_agents_min_tot;
+	// }
+	// if () {
+	//   std::cout << "Invalid number of particles. Exiting" << std::endl;
+	//   return 1;
+	// }
+	
 	if (verbosity > 1)
 	  printf("num agents = %i (rank = %i) \n", num_agents_min, mpi_rank);
 #else
@@ -207,7 +214,6 @@ int main(int argc, char** argv) {
 	if (savefreq <= 0) {
 	  filename.clear();
 	}
-
 	std::ofstream fsave(filename);
 
 	agent_base_t* min_agent_bases = new agent_base_t[num_agents_min];
@@ -223,6 +229,11 @@ int main(int argc, char** argv) {
 	int decomp_indices[num_dim];
 	factor (decomp, num_procs, num_dim);
 	get_indices (decomp_indices, decomp, mpi_rank, num_dim);
+	// printf("decomp = ");
+	// for (int d=0; d<num_dim; d++) {
+	//   printf("%i ", decomp[d]);
+	// }
+	// printf("\n");
 #endif
 	
 	region_t region;
@@ -232,7 +243,7 @@ int main(int argc, char** argv) {
 	        region.lo[d] = pes->get_lower_bound(d);
 		region.hi[d] = pes->get_upper_bound(d);
 #ifdef USE_MPI
-		// printf("decomp[%i] = %i (rank %i) \n", d, decomp_indices[d], mpi_rank);
+		// printf("index[%i] = %i (rank %i) \n", d, decomp_indices[d], mpi_rank);
 		double size = (region.hi[d] - region.lo[d]) / decomp[d];
 		region.lo[d] = region.lo[d] + size * decomp_indices[d];
 		region.hi[d] = region.lo[d] + size;
@@ -293,7 +304,7 @@ int main(int argc, char** argv) {
 
 	// Finalize
 	if (verbosity >= 0)
-	  printf("Time to find minima = %f sec using %i minima agents \n", time_min_find, num_agents_min);
+	  printf("Time to find minima = %f sec using %i minima agents \n", time_min_find, num_agents_min_tot);
 	if (fsave) {
 		fsave.close();
 	}
