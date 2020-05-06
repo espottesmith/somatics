@@ -15,6 +15,7 @@
 
 using namespace std;
 
+/*
 MinimaOptimizer::MinimaOptimizer(double min_find_tol_in, int max_iter_in, int savefreq_in) {
 
   min_find_tol = min_find_tol_in;
@@ -57,7 +58,7 @@ void MinimaOptimizer::optimize (MinimaSwarm& swarm, std::ofstream& fsave) {
   }
 
 }
-
+*/
 
 MinimaNicheOptimizer::MinimaNicheOptimizer(double min_find_tol_in, double unique_min_tol_in,
 					   int max_iter_in, int savefreq_in) {
@@ -69,7 +70,7 @@ MinimaNicheOptimizer::MinimaNicheOptimizer(double min_find_tol_in, double unique
 		
 }
 
-std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSwarm& swarm, std::ofstream& fsave) {
+std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSwarm& swarm, std::ofstream& fsave, int num_threads) {
 
   std::vector< std::vector<double> > minima;
 
@@ -79,10 +80,14 @@ std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSw
 
   int num_min_agent = swarm.num_min_agent;
 
-  int step = 0;
   double fitness_diff = -1.0;
-  while (step < max_iter && (fitness_diff > min_find_tol || fitness_diff <= 0.0)) {
+  omp_set_num_threads(num_threads);
+#pragma omp parallel default(shared)
+  {
+  for (int step = 0; step < max_iter && (fitness_diff > min_find_tol || fitness_diff <= 0.0); step++) {
 
+#pragma omp master
+  {
     // Save state
     if (fsave.good() && (step % savefreq) == 0) {
 
@@ -118,19 +123,14 @@ std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSw
     //////////////////////////////////////////////////////////////////////
 
     fitness_diff = fitness_best_global;
-
-    // // Cognition only
-    // if (verbosity > 0){ printf("Cognition only step \n"); }
-    // swarm.cognition_only();
-
-    // // Update subswarms
-    // if (verbosity > 0){ printf("Evolve subswarms \n"); }
-    // swarm.evolve_subswarms();
-
+ 
     // Evolve all niche agents
     if (verbosity > 0){ printf("Evolve niche agents \n"); }
-    swarm.evolve_niche_agents ();
-
+  }
+    swarm.evolve_niche_agents (num_threads);
+#pragma omp barrier
+#pragma omp master 
+ {
     // Merge subswarms
     if (verbosity > 0){ printf("Merge subswarms \n"); }
     swarm.merge_subswarms();
@@ -142,17 +142,17 @@ std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSw
     // Form new subswarms for agents meeting criteria
     if (verbosity > 0){ printf("Form new subswarms \n"); }
     swarm.form_subswarms();
+ 
 
 #ifdef USE_MPI
     MPI_Barrier( MPI_COMM_WORLD );
 #endif
 
     fitness_diff = abs( (fitness_diff - fitness_best_global) / fitness_diff );
-      
+}     
     //////////////////////////////////////////////////////////////////////
 
-    step++;
-
+  }
   }
 
   minima.resize(0);

@@ -261,7 +261,7 @@ int main(int argc, char** argv) {
 
 	auto t_start_min_find = std::chrono::steady_clock::now();
 
-	std::vector< std::vector<double> > minima_vec = optimizer.optimize(swarm, fsave);
+	std::vector< std::vector<double> > minima_vec = optimizer.optimize(swarm, fsave, num_threads);
 	
 	auto t_end_min_find = std::chrono::steady_clock::now();
 	std::chrono::duration<double> diff = t_end_min_find - t_start_min_find;

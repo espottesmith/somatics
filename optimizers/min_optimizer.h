@@ -32,7 +32,7 @@ class MinimaNicheOptimizer {
   MinimaNicheOptimizer(double min_find_tol_in, double unique_min_tol_in,
 		       int max_iter_in, int savefreq_in = 1);
 
-  std::vector< std::vector<double> > optimize (MinimaNicheSwarm& swarm, std::ofstream& fsave);
+  std::vector< std::vector<double> > optimize (MinimaNicheSwarm& swarm, std::ofstream& fsave, int num_threads);
   
 };
 

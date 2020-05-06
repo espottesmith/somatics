@@ -75,7 +75,7 @@ MinimaSwarm::MinimaSwarm (PotentialEnergySurface* pot_energy_surf_in,
 #endif
 
 }
-
+/*
 void MinimaSwarm::update_fitnesses (double& fitness_best_global, std::vector<double> &pos_best_global) {
 #pragma omp parallel default(shared)
 	{
@@ -135,9 +135,6 @@ void MinimaSwarm::update_fitnesses_gcpso (double& fitness_best_global, std::vect
 		}
 	}
 
-	/* printf("rho = %f \n", rho); */
-	/* printf("number of failures = %i \n", num_failure); */
-	/* printf("number of successes = %i \n", num_success); */
 
 }
 
@@ -176,7 +173,7 @@ void MinimaSwarm::move_swarm () {
 	}
 
 }
-
+*/
 void MinimaSwarm::free_mem () {
 	delete[] region.lo;
 	delete[] region.hi;
@@ -250,6 +247,7 @@ MinimaNicheSwarm::MinimaNicheSwarm (PotentialEnergySurface* pot_energy_surf_in,
 
 }
 
+/*
 void MinimaNicheSwarm::cognition_only () {
 
 	update_fitnesses(fitness_best_global, pos_best_global);
@@ -273,53 +271,49 @@ void MinimaNicheSwarm::evolve_subswarms () {
 		subswarms[i].update_velocities_gcpso(pos_best_globals[i]);
 		subswarms[i].move_swarm();
 
-		// subswarms[i].update_fitnesses(fitness_best_globals[i], pos_best_globals[i]);
-		// subswarms[i].update_velocities(pos_best_globals[i]);
-		// subswarms[i].move_swarm();
-
-		/* printf("fitness_best (%i) = %f \n", i, fitness_best_globals[i]); */
-		/* printf("pos_best (%i) = ", i); */
-		/* for (int d = 0; d < num_dim; d++) { std::cout << " " << pos_best_globals[i][d]; } */
-		/* printf("\n"); */
 	}
 
 	compute_radii_subswarms ();
 
 }
-
-void MinimaNicheSwarm::evolve_niche_agents () {
-
-#ifdef USE_MPI
-	update_swarm_register_mpi ();
-#endif
-
+*/
+void MinimaNicheSwarm::evolve_niche_agents (int num_threads) {
 	double fitness_best_globals_old[num_subswarm];
-
-	for (int i = 0; i < num_subswarm; i++) {
-		subswarms[i].index_best = -1;
-		fitness_best_globals_old[i] = fitness_best_globals[i];
+	int tid = omp_get_thread_num();
+	int i, s, swarm_idx, agent_idx;
+	int num_agents_per_thread = agent_map.size() / num_threads + 1;
+        int num_swarms_per_thread = num_subswarm / num_threads + 1;
+#ifdef USE_MPI
+	if (tid == 0) {
+		update_swarm_register_mpi ();
+        }
+#endif 
+	for (i = 0; i < num_swarms_per_thread; i++) {
+		s = tid + num_swarms_per_thread*i;
+		if (s < num_subswarm) {
+			subswarms[s].index_best = -1;
+			fitness_best_globals_old[s] = fitness_best_globals[s];
+		}
 	}
 
-#pragma omp parallel default(shared)
-	{
-#pragma omp for
-		for (int i = 0; i < agent_map.size(); i++) {
+#pragma omp barrier
 
-			int swarm_idx = swarm_map[i];
-			int agent_idx = agent_map[i];
+	for (i = 0; i < num_agents_per_thread; i++) {
+		s = tid + num_agents_per_thread*i;
 
-			// printf("agent_idx = %i, swarm_idx = %i \n", agent_idx, swarm_idx);
+		if (s < agent_map.size()) {
+			swarm_idx = swarm_map[s];
+			agent_idx = agent_map[s];
 
 			if (swarm_idx >= 0) {
 				// Agents in subswarms
-
 				// Update fitness
 				subswarms[swarm_idx].agents[agent_idx].fitness_calc(pot_energy_surf);
 
 #pragma omp critical
 				{
 					if ( subswarms[swarm_idx].agents[agent_idx].base.fitness < fitness_best_globals[swarm_idx] ||
-					     fitness_best_globals[swarm_idx] == -1.0 ) {
+			     			fitness_best_globals[swarm_idx] == -1.0 ) {
 
 						subswarms[swarm_idx].index_best = agent_idx;
 
@@ -341,45 +335,46 @@ void MinimaNicheSwarm::evolve_niche_agents () {
 
 				// Move agent
 				agents[agent_idx].update_position(region);
-
-			}
-
-		}
-	}
-
-	for (int i = 0; i < num_subswarm; i++) {
-		if (fitness_best_globals_old[i] == fitness_best_globals[i]) {
-			subswarms[i].num_failure++;
-			subswarms[i].num_success = 0;
-		} else {
-			subswarms[i].num_success++;
-			subswarms[i].num_failure = 0;
-		}
-
-		if (subswarms[i].num_failure > subswarms[i].failure_limit) {
-			subswarms[i].rho *= 0.8;
-		} else if (subswarms[i].num_success > subswarms[i].success_limit) {
-			if (subswarms[i].rho < RHO_LIM) {
-				subswarms[i].rho *= 1.25;
 			}
 		}
 	}
 
-#pragma omp parallel default(shared)
-	{
-#pragma omp for
-		for (int i = 0; i < agent_map.size(); i++) {
+#pragma omp barrier
+	for (i = 0; i < num_swarms_per_thread; i++) {
+		s = tid + num_swarms_per_thread*i;
+                if (s < num_subswarm) {
 
-			int swarm_idx = swarm_map[i];
-			int agent_idx = agent_map[i];
+			if (fitness_best_globals_old[s] == fitness_best_globals[s]) {
+				subswarms[s].num_failure++;
+				subswarms[s].num_success = 0;
+			} else {
+				subswarms[s].num_success++;
+				subswarms[s].num_failure = 0;
+			}
+
+			if (subswarms[s].num_failure > subswarms[s].failure_limit) {
+				subswarms[s].rho *= 0.8;
+			} else if (subswarms[s].num_success > subswarms[s].success_limit) {
+				if (subswarms[s].rho < RHO_LIM) {
+					subswarms[s].rho *= 1.25;
+				}
+			}
+		}
+	}
+#pragma omp barrier
+	for (i = 0; i < num_agents_per_thread; i++) {
+                s = tid + num_agents_per_thread*i;
+
+                if (s < agent_map.size()) {
+                        swarm_idx = swarm_map[s];
+                        agent_idx = agent_map[s];
 
 			if (swarm_idx >= 0) {
 				// Agents in subswarms
-
 				// Update velocity
 				if (agent_idx == subswarms[swarm_idx].index_best) {
 					subswarms[swarm_idx].agents[subswarms[swarm_idx].index_best].update_velocity_best(pos_best_globals[swarm_idx],
-					                                                                                  subswarms[swarm_idx].rho);
+		                                                                                  subswarms[swarm_idx].rho);
 				} else {
 					subswarms[swarm_idx].agents[agent_idx].update_velocity(pos_best_globals[swarm_idx]);
 				}
@@ -387,11 +382,27 @@ void MinimaNicheSwarm::evolve_niche_agents () {
 				// Move agent
 				subswarms[swarm_idx].agents[agent_idx].update_position(region);
 			}
-
 		}
+	}	
+
+#pragma omp barrier
+	for (i = 0; i < num_swarms_per_thread; i++) {
+                s = tid + num_swarms_per_thread*i;
+                if (s < num_subswarm) {
+			
+                	double max_dist_sq = -1.0;
+                	for (int j = 0; j < subswarms[s].num_min_agent; j++) {
+                        	double dist_sq = compute_dist_sq(subswarms[s].agents[j].base.pos, pos_best_globals[s]);
+                        	if (dist_sq > max_dist_sq) {
+                                	max_dist_sq = dist_sq;
+                        	}
+                	}
+                	swarm_rsq[s] = max_dist_sq;
+
+        	}
+
 	}
 
-	compute_radii_subswarms ();
 
 }
 
