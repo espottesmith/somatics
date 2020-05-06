@@ -18,17 +18,20 @@
 #define RHO_LIM                    2.0
 #define DIST_LIM                   1000000.00
 #define FITNESS_LIM                1000000.00
-#define verbosity                  0
 
 extern int num_dim;
 extern int num_agents_min_tot;
 extern int num_agents_ts;
+
 extern int num_threads;
 
 #ifdef USE_MPI
 extern int mpi_rank;
 extern int num_procs;
+extern int mpi_root;
 #endif
+
+extern int verbosity;
 
 // Particle Data Structure
 typedef struct agent_base_t {
@@ -83,7 +86,8 @@ void factor (int* sizes, int num_proc, int num_dimensions);
 void get_indices (int* indices, int* sizes, int n, int num_dimensions);
 void init_agents(agent_base_t* agents, int num_agents, region_t region);
 void save(std::ofstream& fsave, agent_base_t* agents, int num_agents, region_t region);
-void save_molecular(std::ofstream& fsave, std::string* species, agent_base_t* agents, int num_agents, region_t region);
+void save_molecular(std::ofstream& fsave, std::string* species,
+		    agent_base_t* agents, int num_agents, region_t region);
 void save_polychrome(std::ofstream& fsave, agent_base_t** agent_bases, int* num_agent_bases,
 		     int num_swarms, region_t region);
 

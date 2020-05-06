@@ -46,10 +46,10 @@ int num_agents_min_tot;
 int num_agents_ts;
 int num_dim;
 int num_threads;
-
 #ifdef USE_MPI
-int num_procs, mpi_rank;
+int num_procs, mpi_rank, mpi_root;
 #endif
+int verbosity;
 
 int main(int argc, char** argv) {
 	// Parse Args
@@ -66,6 +66,7 @@ int main(int argc, char** argv) {
 		std::cout << "-utol <int>: distance tolerance for determination of unique minima. Ex: -utol 6 (default) means that the tolerance will be 1.0 * 10^-6" << std::endl;
 		std::cout << "-iter <int>: maximum number of iterations for PSO algorithms (same for minima and TS); default is 250" << std::endl;
 		std::cout << "-freq <int>: save after every X steps; default is 1" << std::endl;
+		std::cout << "-verb <int>: verbosity; default is 0" << std::endl;
 		return 0;
 	}
 
@@ -75,11 +76,6 @@ int main(int argc, char** argv) {
 
 	num_threads = find_int_arg(argc, argv, "-nthreads", 1);
 
-	omp_set_dynamic(0);
-	omp_set_num_threads(num_threads);
-	std::cout << "MAIN: NUMBER OF THREADS " << omp_get_num_threads() << std::endl;
-	std::cout << "MAIN: MAX NUMBER OF THREADS " << omp_get_max_threads() << std::endl;
-
 	double min_find_tol = 1.0 * pow(10, -1.0 * find_int_arg(argc, argv, "-mtol", 8));
 	double unique_min_tol = 1.0 * pow(10, -1.0 * find_int_arg(argc, argv, "-utol", 6));
 	int max_iter = find_int_arg(argc, argv, "-iter", 250);
@@ -87,6 +83,25 @@ int main(int argc, char** argv) {
 
 	char const* molfile = find_string_option(argc, argv, "-mol", nullptr);
 	char const* surf_name = find_string_option(argc, argv, "-surf", nullptr);
+
+#ifdef USE_MPI
+	// Init MPI
+	MPI_Init(&argc, &argv);
+	MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
+	MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+	mpi_root = 0;
+#endif
+
+	omp_set_dynamic(0);
+	omp_set_num_threads(num_threads);
+
+        verbosity = find_int_arg(argc, argv, "-verb", 0);
+	if (mpi_rank != mpi_root) { verbosity = -1; }
+
+	if (verbosity >= 0) {
+	  std::cout << "MAIN: NUMBER OF THREADS " << omp_get_num_threads() << std::endl;
+	  std::cout << "MAIN: MAX NUMBER OF THREADS " << omp_get_max_threads() << std::endl;
+	}
 
 	if (molfile == nullptr && surf_name == nullptr) {
 		std::cout << "No molecule or surface was provided. Exiting" << std::endl;
@@ -167,15 +182,9 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	std::cout << "Defined surface" << std::endl;
-
-#ifdef USE_MPI
-	// Init MPI
-	MPI_Init(&argc, &argv);
-	MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
-	MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-#endif
-
+	if (verbosity >= 0)
+	  std::cout << "Defined surface" << std::endl;
+	
 #ifdef USE_MIN_FINDER
 #ifdef USE_MPI
 	std::string filename = "minima" + std::to_string(mpi_rank) + ".txt";
@@ -223,16 +232,19 @@ int main(int argc, char** argv) {
 		region.lo[d] = region.lo[d] + size * decomp_indices[d];
 		region.hi[d] = region.lo[d] + size;
 #endif
-		printf("lo = %f, hi = %f \n", region.lo[d], region.hi[d]);
+		// printf("lo = %f, hi = %f \n", region.lo[d], region.hi[d]);
 	}
-	std::cout << "Defined region" << std::endl;
+	
+	if (verbosity >= 0)
+	  std::cout << "Defined region" << std::endl;
 
 	double inertia = 0.5;
 	double cognit  = 1.0;
 	double social  = 2.0;
 
 	init_agents(min_agent_bases, num_agents_min, region);
-	std::cout << "Initialized agents" << std::endl;
+	if (verbosity >= 0)
+	  std::cout << "Initialized agents" << std::endl;
 
 	int max_subswarm_size = 8;
 	double var_threshold = 0.0001;
@@ -240,10 +252,12 @@ int main(int argc, char** argv) {
 	MinimaNicheSwarm swarm(pes, min_agent_bases, num_agents_min,
 			       inertia, cognit, social,
 			       max_subswarm_size, 3, var_threshold);
-	std::cout << "Defined swarm" << std::endl;
+	if (verbosity >= 0)
+	  std::cout << "Defined swarm" << std::endl;
 
 	MinimaNicheOptimizer optimizer (min_find_tol, unique_min_tol, max_iter, savefreq);
-	std::cout << "Defined optimizer" << std::endl;
+	if (verbosity >= 0)
+	  std::cout << "Defined optimizer" << std::endl;
 
 	auto t_start_min_find = std::chrono::steady_clock::now();
 
@@ -273,7 +287,8 @@ int main(int argc, char** argv) {
 	}
 
 	// Finalize
-	printf("Time to find minima = %f sec using %i minima agents \n", time_min_find, num_agents_min);
+	if (verbosity >= 0)
+	  printf("Time to find minima = %f sec using %i minima agents \n", time_min_find, num_agents_min);
 	if (fsave) {
 		fsave.close();
 	}
@@ -289,8 +304,9 @@ int main(int argc, char** argv) {
 
 	delete[] region.lo;
 	delete[] region.hi;
-	
-	std::cout << "# minima: " << minima.size() << std::endl;
+
+	if (verbosity >= 0)
+	  std::cout << "# minima: " << minima.size() << std::endl;
 #endif
 
 	// At this point, everything has the minima vector

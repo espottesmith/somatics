@@ -137,11 +137,11 @@ void init_agents(agent_base_t* agent_bases, int num_agent_bases, region_t region
 	int lengths[num_dim];
 	factor(lengths, num_agent_bases, num_dim);
 
-	printf("decomp = ");
-	for (int d=0; d<num_dim; d++) {
-	  printf("%i ", lengths[d]);
-	}
-	printf("\n");
+	// printf("decomp = ");
+	// for (int d=0; d<num_dim; d++) {
+	//   printf("%i ", lengths[d]);
+	// }
+	// printf("\n");
 	
 	std::vector<int> shuffle(num_agent_bases);
 	for (int i = 0; i < shuffle.size(); ++i) {

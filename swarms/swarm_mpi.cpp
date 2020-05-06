@@ -82,8 +82,6 @@ void MinimaNicheSwarm::update_swarm_register_mpi () {
     // MPI_Allreduce(&(swarm_register[q].radius_sq), &rsq_min, 1,
     // 		  MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
     // if (rsq_min == -1.0) { rsq_max = -1.0; }
-
-    /* HACK */ rsq_max = 0.0;
     MPI_Allreduce(&rsq_max, &(swarm_register[q].radius_sq), 1,
     		  MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 
