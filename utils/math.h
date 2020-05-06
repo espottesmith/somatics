@@ -1,7 +1,3 @@
-//
-// Created by Evan Walter Clark Spotte-Smith on 3/27/20.
-//
-
 #ifndef MATH_H
 #define MATH_H
 

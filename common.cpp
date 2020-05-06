@@ -15,8 +15,6 @@
 
 using namespace std;
 
-// Put any static global variables here that you will use throughout the simulation.
-
 // I/O routines
 
 void save(std::ofstream& fsave, agent_base_t* agent_bases, int num_agent_bases, region_t region) {
