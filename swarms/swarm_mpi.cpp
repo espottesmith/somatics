@@ -77,7 +77,8 @@ void MinimaNicheSwarm::update_swarm_register_mpi () {
 	      fitness_reduced.i, MPI_COMM_WORLD);
     MPI_Bcast(&(swarm_register[q].pos_best[0]), num_dim, MPI_DOUBLE,
 	      fitness_reduced.i, MPI_COMM_WORLD);
-    
+
+    if (rsq_max > RSQ_LIM) { rsq_max = RSQ_LIM; }
     MPI_Allreduce(&rsq_max, &(swarm_register[q].radius_sq), 1,
     		  MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 
