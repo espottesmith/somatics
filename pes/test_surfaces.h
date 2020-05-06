@@ -1,5 +1,3 @@
-#pragma once
-
 #ifndef TEST_SURFACES_H
 #define TEST_SURFACES_H
 

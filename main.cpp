@@ -77,8 +77,6 @@ int main(int argc, char** argv) {
 
 	omp_set_dynamic(0);
 	omp_set_num_threads(num_threads);
-	std::cout << "MAIN: NUMBER OF THREADS " << omp_get_num_threads() << std::endl;
-	std::cout << "MAIN: MAX NUMBER OF THREADS " << omp_get_max_threads() << std::endl;
 
 	double min_find_tol = 1.0 * pow(10, -1.0 * find_int_arg(argc, argv, "-mtol", 8));
 	double unique_min_tol = 1.0 * pow(10, -1.0 * find_int_arg(argc, argv, "-utol", 6));

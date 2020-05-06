@@ -33,8 +33,6 @@ public:
 	double* get_atom_position(int index);
 
 	// Setters
-	// This isn't safe, but I'd really rather not have to use vectors here...
-	// TODO: Figure out a way to guarantee length is the same
 	void set_coords(double* coords_in) { coords = coords_in; }
 	void set_charge(int charge_in);
 
