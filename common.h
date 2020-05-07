@@ -1,5 +1,3 @@
-/* #pragma once */
-
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
@@ -15,19 +13,34 @@
 #include "pes/pes.h"
 
 #define UNIQUE_MIN_SIZE_LOWBOUND   3
+#define RHO_LIM                    0.1
+#define RSQ_LIM                    1.0
 #define DIST_LIM                   1000000.00
 #define FITNESS_LIM                1000000.00
-#define verbosity                  0
+
+#define RHO_FRAC_INIT              0.1
+#define FAILURE_LIM_INIT           5
+#define SUCCESS_LIM_INIT           15
+
+#define ADD_DELAYS                 false
+#define MEAN_ENERGY_EVAL_TIME      1.0e-2
+#define STD_ENERGY_EVAL_TIME       1.0e-3
+#define MEAN_GRAD_EVAL_TIME        1.0e-2
+#define STD_GRAD_EVAL_TIME         1.0e-3
 
 extern int num_dim;
 extern int num_agents_min_tot;
 extern int num_agents_ts;
+
 extern int num_threads;
 
 #ifdef USE_MPI
 extern int mpi_rank;
 extern int num_procs;
+extern int mpi_root;
 #endif
+
+extern int verbosity;
 
 // Particle Data Structure
 typedef struct agent_base_t {
@@ -82,7 +95,8 @@ void factor (int* sizes, int num_proc, int num_dimensions);
 void get_indices (int* indices, int* sizes, int n, int num_dimensions);
 void init_agents(agent_base_t* agents, int num_agents, region_t region);
 void save(std::ofstream& fsave, agent_base_t* agents, int num_agents, region_t region);
-void save_molecular(std::ofstream& fsave, std::string* species, agent_base_t* agents, int num_agents, region_t region);
+void save_molecular(std::ofstream& fsave, std::string* species,
+		    agent_base_t* agents, int num_agents, region_t region);
 void save_polychrome(std::ofstream& fsave, agent_base_t** agent_bases, int* num_agent_bases,
 		     int num_swarms, region_t region);
 

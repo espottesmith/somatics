@@ -1,9 +1,3 @@
-//
-// Created by Evan Walter Clark Spotte-Smith on 3/19/20.
-//
-
-#pragma once
-
 #ifndef PES_H
 #define PES_H
 
@@ -11,8 +5,6 @@
 #include <stdexcept>
 #include <iostream>
 #include <functional>
-
-/* #include "pes.cpp" */
 
 class PotentialEnergySurface {
 

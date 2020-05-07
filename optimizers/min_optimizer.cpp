@@ -40,7 +40,7 @@ void MinimaOptimizer::optimize (MinimaSwarm& swarm, std::ofstream& fsave) {
 
     for (int step = 0; (step < max_iter) && (fitness_diff > min_find_tol || fitness_diff <= 0.0); ++step) {
 
-      if (fsave.good() && (step % savefreq) == 0) {
+      if (fsave.good() && (step % savefreq) == 0 && savefreq > 0) {
 	agent_base_t* agent_bases = new agent_base_t[num_min_agent];
 	for (int p=0; p<num_min_agent; p++) { agent_bases[p] = swarm.agents[p].base; }
 	save(fsave, agent_bases, num_min_agent, swarm.region);
@@ -73,7 +73,6 @@ std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSw
 
   std::vector< std::vector<double> > minima;
 
-  double fitness_best_global = -1.0;
   std::vector<double> pos_best_global;
   pos_best_global.resize(num_dim);
 
@@ -84,7 +83,7 @@ std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSw
   while (step < max_iter && (fitness_diff > min_find_tol || fitness_diff <= 0.0)) {
 
     // Save state
-    if (fsave.good() && (step % savefreq) == 0) {
+    if (fsave.good() && (step % savefreq) == 0 && savefreq > 0) {
 
       if (verbosity > 1){ printf("saving... \n"); }
 
@@ -117,25 +116,37 @@ std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSw
 
     //////////////////////////////////////////////////////////////////////
 
-    fitness_diff = fitness_best_global;
+    double fitness_max = -1.0;
+    for (int i = 0; i < swarm.pos_best_globals.size(); i++) {
+      if (swarm.subswarms[i].num_min_agent >= UNIQUE_MIN_SIZE_LOWBOUND) {
+	if (swarm.fitness_best_globals[i] > fitness_max || fitness_diff == -1.0) {
+	  fitness_max = swarm.fitness_best_globals[i];
+	}
+      }
+    }
+    fitness_diff = fitness_max;
 
-    // Cognition only
-    if (verbosity > 0){ printf("Cognition only step \n"); }
-    swarm.cognition_only();
+    // // Cognition only
+    // if (verbosity > 0){ printf("Cognition only step \n"); }
+    // swarm.cognition_only();
 
-    // Update subswarms
-    if (verbosity > 0){ printf("Evolve subswarms \n"); }
-    swarm.evolve_subswarms();
+    // // Update subswarms
+    // if (verbosity > 0){ printf("Evolve subswarms \n"); }
+    // swarm.evolve_subswarms();
 
-    // // Evolve all niche agents
-    // if (verbosity > 0){ printf("Evolve niche agents \n"); }
-    // swarm.evolve_niche_agents ();
+    // Update maps to all niche agents
+    if (verbosity > 0){ printf("Update maps to niche agents \n"); }
+    swarm.update_maps_niche_agents();
+
+    // Evolve all niche agents
+    if (verbosity > 0){ printf("Evolve niche agents \n"); }
+    swarm.evolve_niche_agents();
 
     // Merge subswarms
     if (verbosity > 0){ printf("Merge subswarms \n"); }
     swarm.merge_subswarms();
 
-    // Add main swarm agents to subswarm
+    // add main swarm agents to subswarm
     if (verbosity > 0){ printf("Add agents to subswarms \n"); }
     swarm.add_agents_subswarms();
 
@@ -147,8 +158,21 @@ std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSw
     MPI_Barrier( MPI_COMM_WORLD );
 #endif
 
-    fitness_diff = abs( (fitness_diff - fitness_best_global) / fitness_diff );
-      
+    if (fitness_diff != -1.0) {
+      fitness_max = -1.0;
+      for (int i = 0; i < swarm.pos_best_globals.size(); i++) {
+	if (swarm.subswarms[i].num_min_agent >= UNIQUE_MIN_SIZE_LOWBOUND) {
+	  if (swarm.fitness_best_globals[i] > fitness_max || fitness_diff == -1.0) {
+	    fitness_max = swarm.fitness_best_globals[i];
+	  }
+	}
+      }
+      fitness_diff = abs( (fitness_diff - fitness_max) / fitness_diff );
+    }
+#ifdef USE_MPI
+    MPI_Allreduce(&fitness_diff, &fitness_max, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    fitness_diff = fitness_max;
+#endif
     //////////////////////////////////////////////////////////////////////
 
     step++;
@@ -157,7 +181,12 @@ std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSw
 
   minima.resize(0);
   for (int i = 0; i < swarm.pos_best_globals.size(); i++) {
+#ifdef USE_MPI
+    if (swarm.swarm_register[swarm.subswarms[i].swarm_ids[0]].num_agent
+	>= UNIQUE_MIN_SIZE_LOWBOUND) {
+#else
     if (swarm.subswarms[i].num_min_agent >= UNIQUE_MIN_SIZE_LOWBOUND) {
+#endif
       std::vector<double> mins (num_dim);
       for (int d = 0; d < num_dim; d++) { mins[d] = swarm.pos_best_globals[i][d]; }
       minima.push_back( mins );
