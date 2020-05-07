@@ -44,4 +44,12 @@ public:
     Point_Sources ();
 };
 
+class Custom_Gaussian: public PotentialEnergySurface {
+public:
+	double calculate_energy(double* position, std::string name_space);
+    double* calculate_gradient(double* position, std::string name_space);
+    Custom_Gaussian (double* lower_bounds_in, double* upper_bounds_in);
+    Custom_Gaussian ();
+};
+
 #endif //TEST_SURFACES_H

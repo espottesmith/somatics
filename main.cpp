@@ -123,6 +123,7 @@ int main(int argc, char** argv) {
 	Halgren_Lipscomb hlsurf;
 	Quapp_Wolfe_Schlegel qwssurf;
 	Culot_Dive_Nguyen_Ghuysen cdng;
+	Custom_Gaussian gauss;
 
 	if (molfile != nullptr) {
 
@@ -178,9 +179,15 @@ int main(int argc, char** argv) {
 			ub[0] =  4.5; ub[1] =  4.5;
 			cdng = Culot_Dive_Nguyen_Ghuysen(lb, ub);
 			pes = &cdng;
+		} else if (surface == "Custom_Gaussian") {
+			lb = new double[num_dim]; ub = new double[num_dim];
+			lb[0] = 0.0; lb[1] = 0.0;
+			ub[0] = 7.5; ub[1] = 7.5;
+			gauss = Custom_Gaussian(lb, ub);
+			pes = &gauss;
 		} else {
 			std::cout << "Invalid surface name given" << std::endl;
-			std::cout << "Valid options include: Muller_Brown, Halgren_Lipscomb, Cerjan_Miller, Quapp_Wolfe_Schlegel, Culot_Dive_Nguyen_Ghuysen" << std::endl;
+			std::cout << "Valid options include: Muller_Brown, Halgren_Lipscomb, Cerjan_Miller, Quapp_Wolfe_Schlegel, Culot_Dive_Nguyen_Ghuysen, Custom_Gaussian" << std::endl;
 			return 1;
 		}
 	}
