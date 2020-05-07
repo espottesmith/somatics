@@ -273,7 +273,7 @@ double Custom_Gaussian::calculate_energy(double *position, std::string name_spac
     double total = 0.0;
 
 	for (int i = 0; i < 32; i++) {
-		total += As[i] * exp(-1 * ((x - xos[i])* (x - xos[i])/(2 * sigxs[i] * sigxs[i]) + (y - yos[i])*pow(y - yos[i])/(2 * sigys[i]*sigys[i])));
+		total += As[i] * exp(-1 * ((x - xos[i])*(x - xos[i])/(2 * sigxs[i] * sigxs[i]) + (y - yos[i])*(y - yos[i])/(2 * sigys[i] * sigys[i])));
 	}
 
 	return total;
