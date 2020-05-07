@@ -305,8 +305,10 @@ int main(int argc, char** argv) {
 	}
 
 	// Finalize
-	if (verbosity >= 0)
+	if (verbosity >= 0) {
 	  printf("Time to find minima = %f sec using %i minima agents \n", time_min_find, num_agents_min_tot);
+	  printf("Number of optimization steps = %i \n", optimizer.step);
+	}
 	if (fsave) {
 		fsave.close();
 	}

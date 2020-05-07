@@ -66,7 +66,7 @@ MinimaNicheOptimizer::MinimaNicheOptimizer(double min_find_tol_in, double unique
   unique_min_tol = unique_min_tol_in;
   max_iter = max_iter_in;
   savefreq = savefreq_in;
-		
+  step = 0;
 }
 
 std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSwarm& swarm, std::ofstream& fsave) {
@@ -77,10 +77,10 @@ std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSw
   pos_best_global.resize(num_dim);
 
   int num_min_agent = swarm.num_min_agent;
-
-  int step = 0;
+  
   double fitness_diff = -1.0;
-  while (step < max_iter && (fitness_diff > min_find_tol || fitness_diff <= 0.0)) {
+  for (step = 0; (step < max_iter) &&
+	 (fitness_diff > min_find_tol || fitness_diff <= 0.0); ++step) {
 
     // Save state
     if (fsave.good() && (step % savefreq) == 0 && savefreq > 0) {
@@ -174,8 +174,6 @@ std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSw
     fitness_diff = fitness_max;
 #endif
     //////////////////////////////////////////////////////////////////////
-
-    step++;
 
   }
 
