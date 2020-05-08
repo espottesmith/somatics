@@ -16,15 +16,15 @@
 using namespace std;
 
 
-  MinimaOptimizer::MinimaOptimizer(double min_find_tol_in, int max_iter_in, int savefreq_in) {
+MinimaOptimizer::MinimaOptimizer(double min_find_tol_in, int max_iter_in, int savefreq_in) {
 
   min_find_tol = min_find_tol_in;
   max_iter = max_iter_in;
   savefreq = savefreq_in;
   
-  }
+}
 
-  void MinimaOptimizer::optimize (MinimaSwarm& swarm, std::ofstream& fsave) {
+void MinimaOptimizer::optimize (MinimaSwarm& swarm, std::ofstream& fsave) {
 
   double fitness_best_global = -1.0;
   std::vector< double >  pos_best_global;
@@ -39,26 +39,25 @@ using namespace std;
   
   {
 
-  for (int step = 0; (step < max_iter) && (fitness_diff > min_find_tol || fitness_diff <= 0.0); ++step) {
+    for (int step = 0; (step < max_iter) && (fitness_diff > min_find_tol || fitness_diff <= 0.0); ++step) {
 
-  if (fsave.good() && (step % savefreq) == 0 && savefreq > 0) {
-  agent_base_t* agent_bases = new agent_base_t[num_min_agent];
-  for (int p=0; p<num_min_agent; p++) { agent_bases[p] = swarm.agents[p].base; }
-  save(fsave, agent_bases, num_min_agent, swarm.region);
-  delete[] agent_bases;
+      if (fsave.good() && (step % savefreq) == 0 && savefreq > 0) {
+	agent_base_t* agent_bases = new agent_base_t[num_min_agent];
+	for (int p=0; p<num_min_agent; p++) { agent_bases[p] = swarm.agents[p].base; }
+	save(fsave, agent_bases, num_min_agent, swarm.region);
+	delete[] agent_bases;
+      }
+
+      fitness_diff = fitness_best_global;
+      swarm.update_fitnesses(fitness_best_global, pos_best_global);
+      swarm.update_velocities(pos_best_global);
+      swarm.move_swarm();
+
+      fitness_diff = abs( (fitness_diff - fitness_best_global) / fitness_diff );
+    }
   }
 
-  fitness_diff = fitness_best_global;
-  swarm.update_fitnesses(fitness_best_global, pos_best_global);
-  swarm.update_velocities(pos_best_global);
-  swarm.move_swarm();
-
-  fitness_diff = abs( (fitness_diff - fitness_best_global) / fitness_diff );
-  }
-  }
-
-  }
-*/
+}
 
 MinimaNicheOptimizer::MinimaNicheOptimizer(double min_find_tol_in, double unique_min_tol_in,
 					   int max_iter_in, int savefreq_in) {
