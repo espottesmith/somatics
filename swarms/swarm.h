@@ -81,6 +81,7 @@ class MinimaNicheSwarm : public MinimaSwarm {
 #ifdef USE_MPI
   int buffsize, swarm_tally;
   swarm_prop_t* swarm_register;
+  std::vector< int > swarm_tallies;
 #endif
 
   std::vector< int > swarm_map;
@@ -95,7 +96,8 @@ class MinimaNicheSwarm : public MinimaSwarm {
 
   void cognition_only ();
   void evolve_subswarms ();
-  void evolve_niche_agents (int num_threads);
+  void update_maps_niche_agents ();
+  void evolve_niche_agents ();
   void compute_radii_subswarms ();
   void merge_subswarms ();
   void add_agents_subswarms ();

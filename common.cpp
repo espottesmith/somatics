@@ -97,7 +97,7 @@ void save_polychrome(std::ofstream& fsave, agent_base_t** agent_bases, int* num_
 void factor (int* sizes, int num_proc, int num_dimensions) {
 
 	int prod = num_proc;
-	int nx = (int)pow(num_proc, 1.0 / num_dimensions);
+	int nx = (int)ceil(pow(num_proc, 1.0 / num_dimensions));
 
 	if (nx < 1) {
 		nx = 1;
@@ -130,10 +130,12 @@ void get_indices (int* indices, int* sizes, int n, int num_dimensions) {
 void init_agents(agent_base_t* agent_bases, int num_agent_bases, region_t region) {
 
 	std::random_device rd;
-	std::mt19937 gen(2);
+	std::mt19937 gen(rd());
+	// std::mt19937 gen(2);
 
 	int lengths[num_dim];
-	factor(lengths, num_agent_bases, num_dim);
+	int num_to_factor = num_agent_bases;
+	factor(lengths, num_to_factor, num_dim);
 
 	// printf("decomp = ");
 	// for (int d=0; d<num_dim; d++) {
@@ -167,7 +169,8 @@ void init_agents(agent_base_t* agent_bases, int num_agent_bases, region_t region
 		for (int d = 0; d < num_dim; d++) {
 			double size = region.hi[d] - region.lo[d];
 			// printf("size = %f (rank %i)\n", size, mpi_rank);
-			agent_bases[i].pos[d] = size * (0.5 + indices[d]) / (1.0 * lengths[d]) + region.lo[d];
+			int index_invert = num_dim - d - 1;
+			agent_bases[i].pos[d] = size * (0.5 + indices[index_invert]) / (1.0 * lengths[index_invert]) + region.lo[d];
 		}
 
 		// Assign random velocities within a bound

@@ -79,7 +79,8 @@ int main(int argc, char** argv) {
 	double min_find_tol = 1.0 * pow(10, -1.0 * find_int_arg(argc, argv, "-mtol", 8));
 	double unique_min_tol = 1.0 * pow(10, -1.0 * find_int_arg(argc, argv, "-utol", 6));
 	int max_iter = find_int_arg(argc, argv, "-iter", 250);
-	int savefreq = find_int_arg(argc, argv, "-freq", 1);
+	int savefreq = find_int_arg(argc, argv, "-freq", -1);
+	if (savefreq == 0) {savefreq = 0;}
 
 	char const* molfile = find_string_option(argc, argv, "-mol", nullptr);
 	char const* surf_name = find_string_option(argc, argv, "-surf", nullptr);
@@ -96,8 +97,10 @@ int main(int argc, char** argv) {
 	omp_set_num_threads(num_threads);
 
         verbosity = find_int_arg(argc, argv, "-verb", 0);
+#ifdef USE_MPI
 	if (mpi_rank != mpi_root) { verbosity = -1; }
-
+#endif
+	
 	if (verbosity >= 0) {
 	  std::cout << "MAIN: NUMBER OF THREADS " << omp_get_num_threads() << std::endl;
 	  std::cout << "MAIN: MAX NUMBER OF THREADS " << omp_get_max_threads() << std::endl;
@@ -187,23 +190,33 @@ int main(int argc, char** argv) {
 	
 #ifdef USE_MIN_FINDER
 #ifdef USE_MPI
-	std::string filename = "minima" + std::to_string(mpi_rank) + ".txt";
-	std::ofstream fsave(filename);
+	std::string filename = "minima_agents_pos_" + std::to_string(mpi_rank) + ".txt";
 
 	int num_agents_min = (num_agents_min_tot + num_procs - 1) / num_procs;
-	if (mpi_rank == num_procs - 1) {
-	  num_agents_min -= num_procs * num_agents_min - num_agents_min_tot;
-	}
+	MPI_Allreduce(&num_agents_min, &num_agents_min_tot, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+	
+	// if (mpi_rank == num_procs - 1) {
+	//   num_agents_min -= num_procs * num_agents_min - num_agents_min_tot;
+	// }
+	// if () {
+	//   std::cout << "Invalid number of particles. Exiting" << std::endl;
+	//   return 1;
+	// }
+	
 	if (verbosity > 1)
 	  printf("num agents = %i (rank = %i) \n", num_agents_min, mpi_rank);
 #else
-	std::string filename = "minima.txt";
-	std::ofstream fsave(filename);
+	std::string filename = "minima_agents_pos.txt";
 
 	int num_agents_min = num_agents_min_tot;
 	if (verbosity > 1)
 	  printf("num agents = %i \n", num_agents_min);
 #endif
+
+	if (savefreq <= 0) {
+	  filename.clear();
+	}
+	std::ofstream fsave(filename);
 
 	agent_base_t* min_agent_bases = new agent_base_t[num_agents_min];
 
@@ -218,6 +231,11 @@ int main(int argc, char** argv) {
 	int decomp_indices[num_dim];
 	factor (decomp, num_procs, num_dim);
 	get_indices (decomp_indices, decomp, mpi_rank, num_dim);
+	// printf("decomp = ");
+	// for (int d=0; d<num_dim; d++) {
+	//   printf("%i ", decomp[d]);
+	// }
+	// printf("\n");
 #endif
 	
 	region_t region;
@@ -227,7 +245,7 @@ int main(int argc, char** argv) {
 	        region.lo[d] = pes->get_lower_bound(d);
 		region.hi[d] = pes->get_upper_bound(d);
 #ifdef USE_MPI
-		// printf("decomp[%i] = %i (rank %i) \n", d, decomp_indices[d], mpi_rank);
+		// printf("index[%i] = %i (rank %i) \n", d, decomp_indices[d], mpi_rank);
 		double size = (region.hi[d] - region.lo[d]) / decomp[d];
 		region.lo[d] = region.lo[d] + size * decomp_indices[d];
 		region.hi[d] = region.lo[d] + size;
@@ -287,13 +305,15 @@ int main(int argc, char** argv) {
 	}
 
 	// Finalize
-	if (verbosity >= 0)
-	  printf("Time to find minima = %f sec using %i minima agents \n", time_min_find, num_agents_min);
+	if (verbosity >= 0) {
+	  printf("Time to find minima = %f sec using %i minima agents \n", time_min_find, num_agents_min_tot);
+	  printf("Number of optimization steps = %i \n", optimizer.step);
+	}
 	if (fsave) {
 		fsave.close();
 	}
 
-	// swarm.free_mem();
+	swarm.free_mem();
 
 	for (int a = 0; a < num_agents_min; a++) {
 		delete[] min_agent_bases[a].pos;

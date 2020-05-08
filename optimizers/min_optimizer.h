@@ -28,7 +28,8 @@ class MinimaNicheOptimizer {
   double unique_min_tol;
   int max_iter;
   int savefreq;
-
+  int step;
+  
   MinimaNicheOptimizer(double min_find_tol_in, double unique_min_tol_in,
 		       int max_iter_in, int savefreq_in = 1);
 
