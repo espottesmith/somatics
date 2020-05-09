@@ -3,12 +3,12 @@
 ON_CORI           = TRUE
 USE_KNL           = TRUE
 
-USE_MPI           = TRUE
+USE_MPI           = FALSE
 USE_MOLECULE      = FALSE
 
 USE_MIN_FINDER    = TRUE
-USE_TS_FINDER     = TRUE
-USE_QHULL         = TRUE
+USE_TS_FINDER     = FALSE
+USE_QHULL         = FALSE
 
 ifeq ($(USE_MPI), TRUE)
 CXX = mpic++

@@ -278,8 +278,8 @@ int main(int argc, char** argv) {
 	  std::cout << "Defined optimizer" << std::endl;
 
 	auto t_start_min_find = std::chrono::steady_clock::now();
-
-	std::vector< std::vector<double> > minima_vec = optimizer.optimize(swarm, fsave, num_threads);
+        //std::cout << "main optimize start" << std::endl;
+	std::vector< std::vector<double> > minima_vec = optimizer.optimize(swarm, fsave);
 	
 	auto t_end_min_find = std::chrono::steady_clock::now();
 	std::chrono::duration<double> diff = t_end_min_find - t_start_min_find;
@@ -307,7 +307,7 @@ int main(int argc, char** argv) {
 	// Finalize
 	if (verbosity >= 0) {
 	  printf("Time to find minima = %f sec using %i minima agents \n", time_min_find, num_agents_min_tot);
-	  printf("Number of optimization steps = %i \n", optimizer.step);
+	  //printf("Number of optimization steps = %i \n", optimizer.step);
 	}
 	if (fsave) {
 		fsave.close();
