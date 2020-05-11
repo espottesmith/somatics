@@ -47,12 +47,12 @@ class MinimaSwarm {
 	       double inertia_in, double cognit_in, double social_in,
 	       double rho_in = 1.0, int failure_limit_in = 5, int success_limit_in = 15);
   MinimaSwarm () {};
-
   void update_fitnesses (double& fitness_best_global, std::vector<double> &pos_best_global);
   void update_fitnesses_gcpso (double& fitness_best_global, std::vector<double> &pos_best_global);
   void update_velocities (std::vector< double > pos_best_global);
   void update_velocities_gcpso (std::vector< double > pos_best_global);
   void move_swarm ();
+
 #ifdef USE_MPI
   void add_swarm_id (int id);
 #endif

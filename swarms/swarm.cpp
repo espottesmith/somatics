@@ -135,10 +135,6 @@ void MinimaSwarm::update_fitnesses_gcpso (double& fitness_best_global, std::vect
     }
   }
 
-  /* printf("rho = %f \n", rho); */
-  /* printf("number of failures = %i \n", num_failure); */
-  /* printf("number of successes = %i \n", num_success); */
-
 }
 
 void MinimaSwarm::update_velocities (std::vector< double > pos_best_global) {
@@ -250,6 +246,7 @@ MinimaNicheSwarm::MinimaNicheSwarm (PotentialEnergySurface* pot_energy_surf_in,
 
 }
 
+
 void MinimaNicheSwarm::cognition_only () {
 
   update_fitnesses(fitness_best_global, pos_best_global);
@@ -309,41 +306,54 @@ void MinimaNicheSwarm::update_maps_niche_agents () {
 }
 
 void MinimaNicheSwarm::evolve_niche_agents () {
-
   double fitness_best_globals_old[num_subswarm];
+  int tid = omp_get_thread_num();
+  int num_agents_per_thread = agent_map.size() / num_threads + 1;
+  int num_swarms_per_thread = num_subswarm / num_threads + 1;
+  int s[num_threads];
+  int swarm_idx[num_threads];
+  int agent_idx[num_threads]; 
+  double max_dist_sq[num_threads];
+  double dist_sq[num_threads];
 
-  for (int i = 0; i < num_subswarm; i++) {
-    subswarms[i].index_best = -1;
-    fitness_best_globals_old[i] = fitness_best_globals[i];
+#ifdef USE_MPI
+  if (tid == 0) {
+    update_swarm_register_mpi ();
+  }
+#endif
+#pragma omp barrier 
+  for (int i = 0; i < num_swarms_per_thread; i++) {
+    s[tid] = tid + num_threads*i;
+
+    if (s[tid] < num_subswarm) {
+      subswarms[s[tid]].index_best = -1;
+      fitness_best_globals_old[s[tid]] = fitness_best_globals[s[tid]];
+    }
   }
 
-#pragma omp parallel default(shared)
-  {
-#pragma omp for
-    for (int i = 0; i < agent_map.size(); i++) {
+#pragma omp barrier
+  for (int i = 0; i < num_agents_per_thread; i++) {
+    s[tid] = tid + num_threads*i;
+    if (s[tid] < agent_map.size()) {
+      swarm_idx[tid] = swarm_map[s[tid]];
+      agent_idx[tid] = agent_map[s[tid]];
 
-      int swarm_idx = swarm_map[i];
-      int agent_idx = agent_map[i];
-
-      // printf("agent_idx = %i, swarm_idx = %i \n", agent_idx, swarm_idx);
-
-      if (swarm_idx >= 0) {
+      if (swarm_idx[tid] >= 0) {
 	// Agents in subswarms
-
 	// Update fitness
-	subswarms[swarm_idx].agents[agent_idx].fitness_calc(pot_energy_surf);
+	subswarms[swarm_idx[tid]].agents[agent_idx[tid]].fitness_calc(pot_energy_surf);
 
 #pragma omp critical
 	{
-	  if ( subswarms[swarm_idx].agents[agent_idx].base.fitness < fitness_best_globals[swarm_idx] ||
-	       fitness_best_globals[swarm_idx] == -1.0 ) {
+	  if ( subswarms[swarm_idx[tid]].agents[agent_idx[tid]].base.fitness < fitness_best_globals[swarm_idx[tid]] ||
+	       fitness_best_globals[swarm_idx[tid]] == -1.0 ) {
 
-	    subswarms[swarm_idx].index_best = agent_idx;
+	    subswarms[swarm_idx[tid]].index_best = agent_idx[tid];
 
 	    for (int d=0; d<num_dim; d++) {
-	      pos_best_globals[swarm_idx][d] = subswarms[swarm_idx].agents[agent_idx].base.pos[d];
+	      pos_best_globals[swarm_idx[tid]][d] = subswarms[swarm_idx[tid]].agents[agent_idx[tid]].base.pos[d];
 	    }
-	    fitness_best_globals[swarm_idx] = subswarms[swarm_idx].agents[agent_idx].base.fitness;
+	    fitness_best_globals[swarm_idx[tid]] = subswarms[swarm_idx[tid]].agents[agent_idx[tid]].base.fitness;
 	  }
 	}
 
@@ -351,73 +361,82 @@ void MinimaNicheSwarm::evolve_niche_agents () {
 	// Cognition-only agents
 
 	// Update fitness
-	agents[agent_idx].fitness_calc(pot_energy_surf);
+	agents[agent_idx[tid]].fitness_calc(pot_energy_surf);
 
 	// Update velocity
-	agents[agent_idx].update_velocity_cognit_only();
-
+	agents[agent_idx[tid]].update_velocity_cognit_only();
+	
 	// Move agent
-	agents[agent_idx].update_position(region);
-
+	agents[agent_idx[tid]].update_position(region);
       }
-
     }
   }
 
-#ifdef USE_MPI
-  update_swarm_register_mpi ();
-#endif
+#pragma omp barrier
+  for (int i = 0; i < num_swarms_per_thread; i++) {
+    s[tid] = tid + num_threads*i;
+    if (s[tid] < num_subswarm) {
 
-#pragma omp parallel default(shared)
-  {
-#pragma omp for
-    for (int i = 0; i < num_subswarm; i++) {
-      if (fitness_best_globals_old[i] == fitness_best_globals[i]) {
-	subswarms[i].num_failure++;
-	subswarms[i].num_success = 0;
+      if (fitness_best_globals_old[s[tid]] == fitness_best_globals[s[tid]]) {
+	subswarms[s[tid]].num_failure++;
+	subswarms[s[tid]].num_success = 0;
       } else {
-	subswarms[i].num_success++;
-	subswarms[i].num_failure = 0;
+	subswarms[s[tid]].num_success++;
+	subswarms[s[tid]].num_failure = 0;
       }
 
-      if (subswarms[i].num_failure > subswarms[i].failure_limit) {
-	subswarms[i].rho *= 0.8;
-      } else if (subswarms[i].num_success > subswarms[i].success_limit) {
-	if (subswarms[i].rho < RHO_LIM) {
-	  // subswarms[i].rho *= 1.0;
-	  subswarms[i].rho *= 1.25;
+      if (subswarms[s[tid]].num_failure > subswarms[s[tid]].failure_limit) {
+	subswarms[s[tid]].rho *= 0.8;
+      } else if (subswarms[s[tid]].num_success > subswarms[s[tid]].success_limit) {
+	if (subswarms[s[tid]].rho < RHO_LIM) {
+	  subswarms[s[tid]].rho *= 1.25;
 	}
       }
     }
   }
 
-#pragma omp parallel default(shared)
-  {
-#pragma omp for
-    for (int i = 0; i < agent_map.size(); i++) {
+#pragma omp barrier
+  for (int i = 0; i < num_agents_per_thread; i++) {
+    s[tid] = tid + num_threads*i;
 
-      int swarm_idx = swarm_map[i];
-      int agent_idx = agent_map[i];
+    if (s[tid] < agent_map.size()) {
+      swarm_idx[tid] = swarm_map[s[tid]];
+      agent_idx[tid] = agent_map[s[tid]];
 
-      if (swarm_idx >= 0) {
+      if (swarm_idx[tid] >= 0) {
 	// Agents in subswarms
-
 	// Update velocity
-	if (agent_idx == subswarms[swarm_idx].index_best) {
-	  subswarms[swarm_idx].agents[subswarms[swarm_idx].index_best].update_velocity_best(pos_best_globals[swarm_idx],
-											    subswarms[swarm_idx].rho);
+	if (agent_idx[tid] == subswarms[swarm_idx[tid]].index_best) {
+	  subswarms[swarm_idx[tid]].agents[subswarms[swarm_idx[tid]].index_best].update_velocity_best(pos_best_globals[swarm_idx[tid]],
+											    subswarms[swarm_idx[tid]].rho);
 	} else {
-	  subswarms[swarm_idx].agents[agent_idx].update_velocity(pos_best_globals[swarm_idx]);
+	  subswarms[swarm_idx[tid]].agents[agent_idx[tid]].update_velocity(pos_best_globals[swarm_idx[tid]]);
 	}
 
 	// Move agent
-	subswarms[swarm_idx].agents[agent_idx].update_position(region);
+	subswarms[swarm_idx[tid]].agents[agent_idx[tid]].update_position(region);
       }
+    }
+  }	
+
+#pragma omp barrier
+  for (int i = 0; i < num_swarms_per_thread; i++) {
+    s[tid] = tid + num_threads*i;
+    if (s[tid] < num_subswarm) {
+			
+      max_dist_sq[tid] = -1.0;
+      for (int j = 0; j < subswarms[s[tid]].num_min_agent; j++) {
+	dist_sq[tid] = compute_dist_sq(subswarms[s[tid]].agents[j].base.pos, pos_best_globals[s[tid]]);
+	if (dist_sq[tid] > max_dist_sq[tid]) {
+	  max_dist_sq[tid] = dist_sq[tid];
+	}
+      }
+      swarm_rsq[s[tid]] = max_dist_sq[tid];
 
     }
+
   }
 
-  compute_radii_subswarms ();
 
 }
 

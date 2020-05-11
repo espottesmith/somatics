@@ -22,7 +22,7 @@
 #define FAILURE_LIM_INIT           5
 #define SUCCESS_LIM_INIT           15
 
-#define ADD_DELAYS                 false
+#define ADD_DELAYS                 true
 #define MEAN_ENERGY_EVAL_TIME      1.0e-2
 #define STD_ENERGY_EVAL_TIME       1.0e-3
 #define MEAN_GRAD_EVAL_TIME        1.0e-2
