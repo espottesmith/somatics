@@ -36,7 +36,7 @@ make
 
 Once somatics has been installed, just run
 ```
-.execute -h
+.somatics -h
 ```
 to see how to run the program.
 
