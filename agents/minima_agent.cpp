@@ -101,9 +101,6 @@ void MinimaAgent::update_velocity_best (std::vector<double> pos_best_global, dou
     v_random = rho * (1.0 - 2.0*r);
     v_correction = pos_best_global[d] - base.pos[d];
     base.vel[d] = inertia*base.vel[d] + v_correction + v_random;
-
-    /* printf("v_correction[%i] = %f \n", d, v_correction); */
-    /* printf("v_random[%i] = %f \n", d, v_random); */
   }
 
 }
@@ -133,15 +130,10 @@ void MinimaAgent::update_variance () {
     for (int i=0; i < var_interval; i++) {
       fit_av    += fitness_register[i];
       fit_av_sq += fitness_register[i] * fitness_register[i];
-
-      /* printf("fitness[%i] = %f \n", i, fitness_register[i]); */
     }
 
     variance = abs (var_interval * fit_av_sq - fit_av * fit_av);
     variance /= var_interval * var_interval;
-
-    /* printf("mean, mean-squared = %f, %f \n", fit_av, fit_av_sq); */
-    /* printf("variance = %f \n", variance); */
 
   }
 

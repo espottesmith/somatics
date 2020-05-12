@@ -70,7 +70,6 @@ MinimaNicheOptimizer::MinimaNicheOptimizer(double min_find_tol_in, double unique
 }
 
 std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSwarm& swarm, std::ofstream& fsave) {
-  //std::cout << "entered optimize function" << std::endl;
 
   std::vector< std::vector<double> > minima;
 
@@ -80,13 +79,10 @@ std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSw
   int num_min_agent = swarm.num_min_agent;
   double fitness_max;
   double fitness_diff = -1.0;
-  //std::cout << "can print here" << std::endl;
-  //std::cout << "num_threads = " << num_threads << std::endl;
   omp_set_num_threads(num_threads);
 
 #pragma omp parallel default(shared)
   {
-    //while (step < max_iter && (fitness_diff > min_find_tol || fitness_diff <= 0.0)) {
     for (int s = 0; (s < max_iter) && (fitness_diff > min_find_tol || fitness_diff <= 0.0); s++) {
 #pragma omp master
       {
@@ -118,10 +114,8 @@ std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSw
 	  delete[] num_agent_bases;
 	  for (int i = 0; i < swarm.num_subswarm + 1; i++)
 	    delete[] agent_bases[i];
-	  // printf("saved \n");
 	  delete[] agent_bases;
 	}
-	//////////////////////////////////////////////////////////////////////
 
 	fitness_max = -1.0;
 	for (int i = 0; i < swarm.pos_best_globals.size(); i++) {
@@ -172,8 +166,7 @@ std::vector< std::vector<double> > MinimaNicheOptimizer::optimize (MinimaNicheSw
 	MPI_Allreduce(&fitness_diff, &fitness_max, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 	fitness_diff = fitness_max;
 #endif
-      }     
-      //////////////////////////////////////////////////////////////////////
+      }
 #pragma omp barrier 
     }
 

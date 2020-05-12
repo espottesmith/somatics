@@ -96,14 +96,17 @@ int main(int argc, char** argv) {
 	omp_set_dynamic(0);
 	omp_set_num_threads(num_threads);
 
-        verbosity = find_int_arg(argc, argv, "-verb", 0);
+	verbosity = find_int_arg(argc, argv, "-verb", 0);
 #ifdef USE_MPI
 	if (mpi_rank != mpi_root) { verbosity = -1; }
 #endif
-	
-	if (verbosity >= 0) {
-	  std::cout << "MAIN: NUMBER OF THREADS " << omp_get_num_threads() << std::endl;
-	  std::cout << "MAIN: MAX NUMBER OF THREADS " << omp_get_max_threads() << std::endl;
+
+	if (verbosity > 0) {
+		std::cout << "NUMBER OF THREADS " << omp_get_num_threads() << std::endl;
+		std::cout << "MAX NUMBER OF THREADS " << omp_get_max_threads() << std::endl;
+#ifdef USE_MPI
+		std::cout << "NUMBER OF PROCESSES " << num_procs << std::endl;
+#endif
 	}
 
 	if (molfile == nullptr && surf_name == nullptr) {
@@ -155,26 +158,26 @@ int main(int argc, char** argv) {
 		std::string surface(surf_name);
 
 		if (surface == "Muller_Brown") {
-		        lb = new double[num_dim]; ub = new double[num_dim];
-		        lb[0] = -1.25; lb[1] = -1.50;
+			lb = new double[num_dim]; ub = new double[num_dim];
+			lb[0] = -1.25; lb[1] = -1.50;
 			ub[0] =  1.25; ub[1] =  1.75;
 			mbsurf = Muller_Brown(lb, ub);
 			pes = &mbsurf;
 		} else if (surface == "Halgren_Lipscomb") {
-		        lb = new double[num_dim]; ub = new double[num_dim];
-		        lb[0] = 0.5; lb[1] = 0.5;
+			lb = new double[num_dim]; ub = new double[num_dim];
+			lb[0] = 0.5; lb[1] = 0.5;
 			ub[0] = 4.0; ub[1] = 4.0;
 			hlsurf = Halgren_Lipscomb(lb, ub);
 			pes = &hlsurf;
 		} else if (surface == "Quapp_Wolfe_Schlegel") {
-		        lb = new double[num_dim]; ub = new double[num_dim];
-		        lb[0] = -2.0; lb[1] = -2.0;
+			lb = new double[num_dim]; ub = new double[num_dim];
+			lb[0] = -2.0; lb[1] = -2.0;
 			ub[0] =  2.0; ub[1] =  2.0;
 			qwssurf = Quapp_Wolfe_Schlegel(lb, ub);
 			pes = &qwssurf;
 		} else if (surface == "Culot_Dive_Nguyen_Ghuysen") {
-		        lb = new double[num_dim]; ub = new double[num_dim];
-		        lb[0] = -4.5; lb[1] = -4.5;
+			lb = new double[num_dim]; ub = new double[num_dim];
+			lb[0] = -4.5; lb[1] = -4.5;
 			ub[0] =  4.5; ub[1] =  4.5;
 			cdng = Culot_Dive_Nguyen_Ghuysen(lb, ub);
 			pes = &cdng;
@@ -185,32 +188,27 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	if (verbosity >= 0)
-	  std::cout << "Defined surface" << std::endl;
-	
+	if (verbosity > 0) {
+		std::cout << "Defined surface" << std::endl;
+	}
+
 #ifdef USE_MIN_FINDER
-#ifdef USE_MPI
+	#ifdef USE_MPI
 	std::string filename = "minima_agents_pos_" + std::to_string(mpi_rank) + ".txt";
 
 	int num_agents_min = (num_agents_min_tot + num_procs - 1) / num_procs;
 	MPI_Allreduce(&num_agents_min, &num_agents_min_tot, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 	
-	// if (mpi_rank == num_procs - 1) {
-	//   num_agents_min -= num_procs * num_agents_min - num_agents_min_tot;
-	// }
-	// if () {
-	//   std::cout << "Invalid number of particles. Exiting" << std::endl;
-	//   return 1;
-	// }
-	
-	if (verbosity > 1)
-	  printf("num agents = %i (rank = %i) \n", num_agents_min, mpi_rank);
+	if (verbosity > 1) {
+		printf("num agents = %i (rank = %i) \n", num_agents_min, mpi_rank);
+	}
 #else
 	std::string filename = "minima_agents_pos.txt";
 
 	int num_agents_min = num_agents_min_tot;
-	if (verbosity > 1)
-	  printf("num agents = %i \n", num_agents_min);
+	if (verbosity > 1) {
+		printf("num agents = %i \n", num_agents_min);
+	}
 #endif
 
 	if (savefreq <= 0) {
@@ -231,11 +229,6 @@ int main(int argc, char** argv) {
 	int decomp_indices[num_dim];
 	factor (decomp, num_procs, num_dim);
 	get_indices (decomp_indices, decomp, mpi_rank, num_dim);
-	// printf("decomp = ");
-	// for (int d=0; d<num_dim; d++) {
-	//   printf("%i ", decomp[d]);
-	// }
-	// printf("\n");
 #endif
 	
 	region_t region;
@@ -245,24 +238,24 @@ int main(int argc, char** argv) {
 	        region.lo[d] = pes->get_lower_bound(d);
 		region.hi[d] = pes->get_upper_bound(d);
 #ifdef USE_MPI
-		// printf("index[%i] = %i (rank %i) \n", d, decomp_indices[d], mpi_rank);
 		double size = (region.hi[d] - region.lo[d]) / decomp[d];
 		region.lo[d] = region.lo[d] + size * decomp_indices[d];
 		region.hi[d] = region.lo[d] + size;
 #endif
-		// printf("lo = %f, hi = %f \n", region.lo[d], region.hi[d]);
 	}
 	
-	if (verbosity >= 0)
-	  std::cout << "Defined region" << std::endl;
+	if (verbosity > 0) {
+		std::cout << "Defined region" << std::endl;
+	}
 
 	double inertia = 0.5;
 	double cognit  = 1.0;
 	double social  = 2.0;
 
 	init_agents(min_agent_bases, num_agents_min, region);
-	if (verbosity >= 0)
-	  std::cout << "Initialized agents" << std::endl;
+	if (verbosity > 0) {
+		std::cout << "Initialized agents" << std::endl;
+	}
 
 	int max_subswarm_size = 8;
 	double var_threshold = 0.0001;
@@ -270,12 +263,14 @@ int main(int argc, char** argv) {
 	MinimaNicheSwarm swarm(pes, min_agent_bases, num_agents_min,
 			       inertia, cognit, social,
 			       max_subswarm_size, 3, var_threshold);
-	if (verbosity >= 0)
-	  std::cout << "Defined swarm" << std::endl;
+	if (verbosity > 0) {
+		std::cout << "Defined swarm" << std::endl;
+	}
 
 	MinimaNicheOptimizer optimizer (min_find_tol, unique_min_tol, max_iter, savefreq);
-	if (verbosity >= 0)
-	  std::cout << "Defined optimizer" << std::endl;
+	if (verbosity > 0) {
+		std::cout << "Defined optimizer" << std::endl;
+	}
 
 	auto t_start_min_find = std::chrono::steady_clock::now();
         //std::cout << "main optimize start" << std::endl;
@@ -293,21 +288,20 @@ int main(int argc, char** argv) {
 	  }
 	}
 
-	if (verbosity > 0) {
-	  printf("minima: \n");
+	if (verbosity >= 0) {
+	  std::cout << "minima: " << std::endl;
 	  for (int i=0; i<minima_vec.size(); i++) {
-	    printf("\t");
+	  	std::cout << "\t";
 	    for (int d=0; d<num_dim; d++) {
-	      printf("%f ", minima_vec[i][d]);
+	      std::cout << minima_vec[i][d] << " ";
 	    }
-	    printf("\n");
+	    std::cout << std::endl;
 	  }
 	}
 
 	// Finalize
 	if (verbosity >= 0) {
-	  printf("Time to find minima = %f sec using %i minima agents \n", time_min_find, num_agents_min_tot);
-	  //printf("Number of optimization steps = %i \n", optimizer.step);
+	  std::cout << "Time to find minima = " << time_min_find << " sec using " << num_agents_min_tot << " minima agents" << std::endl;
 	}
 	if (fsave) {
 		fsave.close();
@@ -325,15 +319,14 @@ int main(int argc, char** argv) {
 	delete[] region.lo;
 	delete[] region.hi;
 
-	if (verbosity >= 0)
-	  std::cout << "# minima: " << minima.size() << std::endl;
+	if (verbosity >= 0) {
+		std::cout << "# minima: " << minima.size() << std::endl;
+	}
 #endif
-
-	// At this point, everything has the minima vector
 
 #ifdef USE_TS_FINDER
 
-bool single_process = true;
+	bool single_process = true;
 
 #ifdef USE_MPI
 
@@ -368,7 +361,9 @@ bool single_process = true;
 		        }
 		    }
 
-		    std::cout << "# TS to search for: " << to_allocate.size() << std::endl;
+		    if (verbosity >= 0) {
+		        std::cout << "# TS to search for: " << to_allocate.size() << std::endl;
+		    }
 
 		    int allocated = 0;
 		    for (int pair = 0; pair < to_allocate.size(); pair++) {
@@ -401,12 +396,13 @@ bool single_process = true;
             auto t_end_ts_find = std::chrono::steady_clock::now();
             std::chrono::duration<double> diff_ts = t_end_ts_find - t_start_ts_find;
 			double time_ts_find = diff_ts.count();
-            std::cout << "CONTROLLER TOTAL TIME: " << time_ts_find << std::endl;
-
+			if (verbosity >= 0) {
+	            std::cout << "CONTROLLER TOTAL TIME: " << time_ts_find << std::endl;
+			}
 			int numts = controller.transition_states.size();
 			int numfails = controller.failures.size();
 			for (int ts = 0; ts < numts; ts++) {
-				if (controller.transition_states[ts].converged) {
+				if (controller.transition_states[ts].converged && verbosity >= 0) {
 					std::cout << controller.transition_states[ts].minima_one << " " << controller.transition_states[ts].minima_two << std::endl;
 					for (int d = 0; d < num_dim; d++) {
 						std::cout << controller.transition_states[ts].ts_position[d] << " ";
@@ -417,7 +413,7 @@ bool single_process = true;
 			}
 
 			for (int fail = 0; fail < numfails; fail++) {
-				if (!controller.failures[fail].converged) {
+				if (!controller.failures[fail].converged && verbosity >= 0) {
 					std::cout << controller.failures[fail].minima_one << " " << controller.failures[fail].minima_two << ": NO TS FOUND" << std::endl;
 					std::cout << std::endl;
 				}
@@ -436,7 +432,9 @@ bool single_process = true;
 	            auto t_end_ts_find = std::chrono::steady_clock::now();
 	            std::chrono::duration<double> diff_ts = t_end_ts_find - t_start_ts_find;
 				double time_ts_find = diff_ts.count();
-				std::cout << "RANK " << mpi_rank << "\t iterations: " << ts_opt.get_iteration() << "\t step #: " << ts_opt.get_step_num() << "\t time : " << time_ts_find << std::endl;
+				if (verbosity >= 0) {
+					std::cout << "RANK " << mpi_rank << "\t iterations: " << ts_opt.get_iteration() << "\t step #: " << ts_opt.get_step_num() << "\t time : " << time_ts_find << std::endl;
+				}
 				ts_opt.reset();
 			}
 		}
@@ -444,7 +442,9 @@ bool single_process = true;
 #endif // USE_MPI
 
 	if (single_process) {
-		std::cout << "RUNNNING IN SINGLE PROCESS REGION" << std::endl;
+		if (verbosity >= 0) {
+			std::cout << "RUNNNING IN SINGLE PROCESS REGION" << std::endl;
+		}
 
 #ifdef USE_QHULL
 			int* outpairs = delaunay(minima);
@@ -461,10 +461,12 @@ bool single_process = true;
 	                auto t_end_ts_find = std::chrono::steady_clock::now();
 	                std::chrono::duration<double> diff_ts = t_end_ts_find - t_start_ts_find;
 					double time_ts_find = diff_ts.count();
-	                std::cout << i << " " << j << " " << ": " << time_ts_find << std::endl;
-	                std::cout << "Iterations: " << ts_opt.get_iteration() << std::endl;
-	                std::cout << "Steps on final iteration: " << ts_opt.get_step_num() << std::endl;
-	                if (ts_opt.all_converged) {
+					if (verbosity >= 0) {
+		                std::cout << i << " " << j << " " << ": " << time_ts_find << std::endl;
+		                std::cout << "Iterations: " << ts_opt.get_iteration() << std::endl;
+		                std::cout << "Steps on final iteration: " << ts_opt.get_step_num() << std::endl;
+					}
+					if (ts_opt.all_converged && verbosity >= 0) {
 	                    double* ts = ts_opt.transition_state;
 		                for (int d = 0; d < num_dim; d++) {
 		                    std::cout << ts[d] << " ";
@@ -482,5 +484,5 @@ bool single_process = true;
 
 #ifdef USE_MPI
 	MPI_Finalize();
-#endif	
+#endif
 }

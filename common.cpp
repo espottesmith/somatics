@@ -131,18 +131,11 @@ void init_agents(agent_base_t* agent_bases, int num_agent_bases, region_t region
 
 	std::random_device rd;
 	std::mt19937 gen(rd());
-	// std::mt19937 gen(2);
 
 	int lengths[num_dim];
 	int num_to_factor = num_agent_bases;
 	factor(lengths, num_to_factor, num_dim);
 
-	// printf("decomp = ");
-	// for (int d=0; d<num_dim; d++) {
-	//   printf("%i ", lengths[d]);
-	// }
-	// printf("\n");
-	
 	std::vector<int> shuffle(num_agent_bases);
 	for (int i = 0; i < shuffle.size(); ++i) {
 		shuffle[i] = i;
@@ -160,15 +153,8 @@ void init_agents(agent_base_t* agent_bases, int num_agent_bases, region_t region
 		int indices[num_dim];
 		get_indices (indices, lengths, i, num_dim);
 
-		// printf("indices = ");
-		// for (int d=0; d<num_dim; d++) {
-		//   printf("%i ", indices[d]);
-		// }
-		// printf(" (rank %i)\n", mpi_rank);
-
 		for (int d = 0; d < num_dim; d++) {
 			double size = region.hi[d] - region.lo[d];
-			// printf("size = %f (rank %i)\n", size, mpi_rank);
 			int index_invert = num_dim - d - 1;
 			agent_bases[i].pos[d] = size * (0.5 + indices[index_invert]) / (1.0 * lengths[index_invert]) + region.lo[d];
 		}
